@@ -182,6 +182,10 @@ Abre [http://localhost:3000](http://localhost:3000):
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
    - `ALLOWED_EMAIL`
+
+   A Vercel pode avisar que o prefixo `NEXT_PUBLIC_` expõe o valor ao browser ("Remove the public framework prefix… If that's safe, change the variable to Config"). **Não tires o prefixo**: o browser precisa destas duas variáveis para enviar as fotos, e é seguro porque o URL e a publishable key são públicos por natureza. Escolhe o tipo **Config**.
+
+   > Só **não** é seguro se o valor for a *secret key* (`sb_secret_…`) ou a *service_role key*. Essas nunca entram nesta app. A publishable key começa por `sb_publishable_`.
 4. **Deploy**. Demora 1 a 2 minutos.
 5. Anota o domínio de produção, tipo `https://mota-app-xxxx.vercel.app`. Está em **Settings → Domains**; podes mudá-lo para algo mais curto, como `mota-miguel.vercel.app`.
 
