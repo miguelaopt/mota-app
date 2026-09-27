@@ -16,32 +16,35 @@ describe("toCents / toEuros", () => {
   });
 });
 
+// formatEur usa um espaço não separável antes do "€".
+const eur = (text: string) => text.replace(" €", "\u00a0€");
+
 describe("formatEur", () => {
   it("usa ponto nos milhares e vírgula nos decimais", () => {
-    expect(formatEur(123456)).toBe("1.234,56 €");
-    expect(formatEur(1234560)).toBe("12.345,60 €");
-    expect(formatEur(123456789)).toBe("1.234.567,89 €");
+    expect(formatEur(123456)).toBe(eur("1.234,56 €"));
+    expect(formatEur(1234560)).toBe(eur("12.345,60 €"));
+    expect(formatEur(123456789)).toBe(eur("1.234.567,89 €"));
   });
 
   it("formata valores pequenos e zero", () => {
-    expect(formatEur(0)).toBe("0,00 €");
-    expect(formatEur(5)).toBe("0,05 €");
-    expect(formatEur(99900)).toBe("999,00 €");
+    expect(formatEur(0)).toBe(eur("0,00 €"));
+    expect(formatEur(5)).toBe(eur("0,05 €"));
+    expect(formatEur(99900)).toBe(eur("999,00 €"));
   });
 
   it("formata negativos", () => {
-    expect(formatEur(-123456)).toBe("-1.234,56 €");
+    expect(formatEur(-123456)).toBe(eur("-1.234,56 €"));
   });
 
   it("pode omitir cêntimos a zero", () => {
-    expect(formatEur(650000, { hideZeroCents: true })).toBe("6.500 €");
-    expect(formatEur(650050, { hideZeroCents: true })).toBe("6.500,50 €");
+    expect(formatEur(650000, { hideZeroCents: true })).toBe(eur("6.500 €"));
+    expect(formatEur(650050, { hideZeroCents: true })).toBe(eur("6.500,50 €"));
   });
 
   it("pode mostrar o sinal +", () => {
-    expect(formatEur(2500, { signed: true })).toBe("+25,00 €");
-    expect(formatEur(-2500, { signed: true })).toBe("-25,00 €");
-    expect(formatEur(0, { signed: true })).toBe("0,00 €");
+    expect(formatEur(2500, { signed: true })).toBe(eur("+25,00 €"));
+    expect(formatEur(-2500, { signed: true })).toBe(eur("-25,00 €"));
+    expect(formatEur(0, { signed: true })).toBe(eur("0,00 €"));
   });
 });
 

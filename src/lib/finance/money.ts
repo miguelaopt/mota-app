@@ -26,7 +26,8 @@ export interface FormatEurOptions {
 }
 
 /**
- * Formata cêntimos em euros no formato português: "1.234,56 €".
+ * Formata cêntimos em euros no formato português: "1.234,56 €" (com espaço
+ * não separável antes do símbolo).
  * (O Intl de pt-PT dá "1234,56 €" e "12 345,60 €", por isso é feito à mão.)
  */
 export function formatEur(cents: Cents, options: FormatEurOptions = {}): string {
@@ -42,7 +43,8 @@ export function formatEur(cents: Cents, options: FormatEurOptions = {}): string 
   }
 
   const sign = negative ? "-" : options.signed && rounded > 0 ? "+" : "";
-  return `${sign}${text} €`;
+  // Espaço não separável: o "€" nunca fica sozinho na linha seguinte.
+  return `${sign}${text}\u00a0€`;
 }
 
 /**
