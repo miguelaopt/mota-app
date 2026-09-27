@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fb923c"/>
+      <stop offset="1" stop-color="#c2410c"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+    <!-- rodas -->
+    <circle cx="148" cy="320" r="58" stroke-width="24"/>
+    <circle cx="364" cy="320" r="58" stroke-width="24"/>
+    <!-- braço oscilante e forqueta -->
+    <path d="M148 320 L238 292" stroke-width="22"/>
+    <path d="M364 320 L318 196" stroke-width="22"/>
+    <!-- guiador -->
+    <path d="M300 180 L338 170" stroke-width="20"/>
+    <!-- subquadro traseiro -->
+    <path d="M178 250 L226 290" stroke-width="18"/>
+  </g>
+  <g fill="#fff">
+    <!-- depósito + assento -->
+    <path d="M150 236 Q150 222 166 222 L226 222 Q236 198 262 196 L306 194 Q322 194 326 210 L332 236 Q334 250 320 250 L164 250 Q150 250 150 236 Z"/>
+    <!-- motor -->
+    <rect x="222" y="252" width="84" height="58" rx="14"/>
+  </g>
+</svg>

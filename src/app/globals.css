@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f2f2f7;
+  --card: #ffffff;
+  --card-2: #f7f7fa;
+  --fg: #111114;
+  --muted: #6b6b73;
+  --sep: rgb(60 60 67 / 0.16);
+  --track: #e5e5ea;
+  --accent: #ea580c;
+  --accent-fg: #ffffff;
+  --accent-soft: #ffedd5;
+  --success: #15803d;
+  --success-soft: #dcfce7;
+  --danger: #dc2626;
+  --danger-soft: #fee2e2;
+  --warning: #b45309;
+  --warning-soft: #fef3c7;
+
+  --tabbar-h: 3.5rem;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000;
+    --card: #1c1c1e;
+    --card-2: #2c2c2e;
+    --fg: #f5f5f7;
+    --muted: #9a9aa1;
+    --sep: rgb(84 84 88 / 0.55);
+    --track: #3a3a3c;
+    --accent: #fb923c;
+    --accent-fg: #1c1004;
+    --accent-soft: rgb(251 146 60 / 0.16);
+    --success: #4ade80;
+    --success-soft: rgb(74 222 128 / 0.14);
+    --danger: #f87171;
+    --danger-soft: rgb(248 113 113 / 0.14);
+    --warning: #fbbf24;
+    --warning-soft: rgb(251 191 36 / 0.14);
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-card-2: var(--card-2);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-sep: var(--sep);
+  --color-track: var(--track);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html {
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Inputs com pelo menos 16px: o Safari do iPhone faz zoom em fontes menores. */
+input,
+select,
+textarea {
+  font-size: max(16px, 1em);
+}
+
+/* Área útil respeitando notch, barra inferior e tab bar. */
+.app-main {
+  padding-top: calc(var(--safe-top) + 0.5rem);
+  padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 1.5rem);
+  padding-left: max(1rem, var(--safe-left));
+  padding-right: max(1rem, var(--safe-right));
+}
+
+.tabbar {
+  padding-bottom: var(--safe-bottom);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+}
+
+.sheet-safe {
+  padding-bottom: calc(var(--safe-bottom) + 1rem);
+}
+
+dialog.sheet {
+  margin: auto auto 0;
+  max-height: calc(100dvh - var(--safe-top) - 1rem);
+  width: 100%;
+  max-width: 32rem;
+  border-radius: 1.25rem 1.25rem 0 0;
+  background: var(--card);
+  color: var(--fg);
+  padding: 0;
+  border: 0;
+  overscroll-behavior: contain;
+}
+
+@media (min-width: 640px) {
+  dialog.sheet {
+    margin: auto;
+    border-radius: 1.25rem;
+  }
+}
+
+dialog.sheet::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+
+dialog.sheet[open] {
+  animation: sheet-in 0.22s ease-out;
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.sheet[open] {
+    animation: none;
+  }
+}
