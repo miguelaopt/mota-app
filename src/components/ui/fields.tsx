@@ -111,7 +111,7 @@ export function Segmented<T extends string>({
   return (
     <div className="flex rounded-xl bg-card-2 p-1" role="radiogroup">
       {options.map((option) => (
-        <label key={option.value} className="flex-1">
+        <label key={option.value} className="relative flex-1">
           <input
             type="radio"
             name={name}
