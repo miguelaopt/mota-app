@@ -9,10 +9,10 @@ import { saveSettingsAction } from "./actions";
 
 export function SettingsForm({ monthlyGoalCents }: { monthlyGoalCents: Cents }) {
   const [saved, setSaved] = useState(false);
-  const { error, formAction } = useFormAction(saveSettingsAction, () => setSaved(true));
+  const { error, pending, formProps } = useFormAction(saveSettingsAction, () => setSaved(true));
 
   return (
-    <form action={formAction} onChange={() => setSaved(false)} className="space-y-4">
+    <form {...formProps} onChange={() => setSaved(false)} className="space-y-4">
       <Field
         label="Meta de poupança mensal"
         htmlFor="monthly_goal"
@@ -21,7 +21,7 @@ export function SettingsForm({ monthlyGoalCents }: { monthlyGoalCents: Cents }) 
         <MoneyInput id="monthly_goal" name="monthly_goal" defaultCents={monthlyGoalCents} />
       </Field>
       <FormError error={error} />
-      <SubmitButton className="w-full">{saved ? "Guardado ✓" : "Guardar"}</SubmitButton>
+      <SubmitButton pending={pending} className="w-full">{saved ? "Guardado ✓" : "Guardar"}</SubmitButton>
     </form>
   );
 }

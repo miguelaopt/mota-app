@@ -60,3 +60,13 @@ describe("getEnum", () => {
     expect(getEnum(form({ k: "hack" }), "k", ["available", "invested"] as const, "available")).toBe("available");
   });
 });
+
+describe("getMoney obrigatório / getOptionalMoney", () => {
+  it("distingue vazio de zero", async () => {
+    const { getOptionalMoney } = await import("./forms");
+    expect(() => getMoney(form({ v: "" }), "v", { required: true })).toThrow(FormError);
+    expect(getMoney(form({ v: "0" }), "v", { required: true })).toBe(0);
+    expect(getOptionalMoney(form({ v: "" }), "v")).toBeNull();
+    expect(getOptionalMoney(form({ v: "12,5" }), "v")).toBe(12.5);
+  });
+});

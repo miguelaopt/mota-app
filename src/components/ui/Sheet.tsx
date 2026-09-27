@@ -10,8 +10,12 @@ import { CloseIcon } from "@/components/icons";
  */
 export function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: ReactNode; children: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
+  // Estado pedido pelo pai, para distinguir um fecho do utilizador (Esc,
+  // toque fora) de um fecho programático (que não deve voltar a chamar onClose).
+  const openRef = useRef(open);
 
   useEffect(() => {
+    openRef.current = open;
     const dialog = ref.current;
     if (!dialog) return;
     if (open && !dialog.open) dialog.showModal();
@@ -22,7 +26,9 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
     <dialog
       ref={ref}
       className="sheet"
-      onClose={onClose}
+      onClose={() => {
+        if (openRef.current) onClose();
+      }}
       onClick={(event) => {
         // Toque fora do conteúdo (no fundo escurecido) fecha a folha.
         if (event.target === ref.current) onClose();

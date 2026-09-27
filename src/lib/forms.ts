@@ -22,10 +22,13 @@ export function getRequiredText(form: FormData, name: string, options: { label?:
   return getText(form, name, { ...options, required: true }) as string;
 }
 
-/** Valor em euros (number com 2 casas) a partir de "1.234,56". Vazio = 0. */
-export function getMoney(form: FormData, name: string, { label = name, allowNegative = false } = {}): number {
+/** Valor em euros (number com 2 casas) a partir de "1.234,56". Vazio = 0 (ou erro, se obrigatório). */
+export function getMoney(form: FormData, name: string, { label = name, allowNegative = false, required = false } = {}): number {
   const value = raw(form, name);
-  if (!value) return 0;
+  if (!value) {
+    if (required) throw new FormError(`Preenche o campo "${label}".`);
+    return 0;
+  }
   const cents = parseEur(value);
   if (cents == null) throw new FormError(`"${label}" não é um valor válido.`);
   if (!allowNegative && cents < 0) throw new FormError(`"${label}" não pode ser negativo.`);
@@ -55,6 +58,11 @@ export function getUrl(form: FormData, name: string, { label = name } = {}): str
   } catch {
     throw new FormError(`"${label}" não é um link válido.`);
   }
+}
+
+/** Como getMoney, mas vazio = null (ex.: saldo ainda não definido). */
+export function getOptionalMoney(form: FormData, name: string, options: { label?: string; allowNegative?: boolean } = {}): number | null {
+  return raw(form, name) ? getMoney(form, name, options) : null;
 }
 
 export function getEnum<T extends string>(form: FormData, name: string, values: readonly T[], fallback: T): T {
