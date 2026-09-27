@@ -8,7 +8,7 @@ Tempo estimado: **30 a 45 minutos**. Tudo o que é preciso é gratuito.
 - [x] **0.** Código no GitHub, no ramo `main` (já feito)
 - [ ] **1.** Criar o projeto no Supabase
 - [ ] **2.** Correr as 5 migrations SQL
-- [ ] **3.** Configurar a autenticação (URLs e templates de email)
+- [ ] **3.** Configurar a autenticação (URLs, templates de email e SMTP)
 - [ ] **4.** Copiar as chaves do Supabase
 - [ ] **5.** *(Opcional)* Testar no computador
 - [ ] **6.** Deploy na Vercel
@@ -34,7 +34,7 @@ Precisas de:
    - **Region**: `West EU (Ireland)` ou `Central EU (Frankfurt)`, perto de Portugal.
 3. **Create new project** e espera 1 a 2 minutos.
 
-> **Importante sobre o email:** o serviço de email incluído no Supabase só envia para emails de **membros da equipa** do projeto e só alguns por hora. Usa em `ALLOWED_EMAIL` o **mesmo email da tua conta Supabase**. Se quiseres outro email, vê "O email não chega" em [Problemas comuns](#problemas-comuns).
+> **Importante sobre o email:** o serviço de email incluído no Supabase só envia para emails de **membros da equipa** do projeto e só alguns por hora. Por isso, configura um SMTP próprio no [passo 3.4](#34-smtp-próprio-para-os-emails-chegarem). Com o Gmail demora 5 minutos.
 
 ## 2. Criar as tabelas (migrations)
 
@@ -106,6 +106,43 @@ Em **Authentication → Sign In / Providers → Email**, confirma que:
 
 - o provider **Email** está ativo (vem ativo por omissão);
 - **Email OTP Length** é `6`. A app aceita 6 a 10 dígitos, mas 6 é mais rápido de escrever.
+
+### 3.4 SMTP próprio (para os emails chegarem)
+
+Sem SMTP próprio, o Supabase só envia emails para membros da equipa do projeto e só alguns por hora. A forma mais simples é enviar pela tua conta **Gmail** com uma *palavra-passe de app*: não precisas de domínio nem de conta nova, e o limite é de ~500 emails por dia.
+
+**a) Criar a palavra-passe de app no Google**
+
+1. Em [myaccount.google.com/security](https://myaccount.google.com/security), confirma que a **Verificação em 2 passos** está ativa. Sem ela, a opção seguinte não aparece.
+2. Abre [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
+3. Em **Nome da app**, escreve `Supabase Mota` e carrega em **Criar**.
+4. Copia a palavra-passe de 16 letras que aparece. Só é mostrada uma vez; se a perderes, crias outra.
+
+**b) Configurar no Supabase**
+
+Em **Authentication → Emails → SMTP Settings**, ativa **Enable Custom SMTP** e preenche:
+
+| Campo | Valor |
+|---|---|
+| Sender email | o teu endereço Gmail (ex.: `nome@gmail.com`) |
+| Sender name | `Mota` |
+| Host | `smtp.gmail.com` |
+| Port number | `465` |
+| Minimum interval between emails | `60` (valor por omissão) |
+| Username | o teu endereço Gmail completo |
+| Password | a palavra-passe de app, **sem espaços** |
+
+Carrega em **Save changes**.
+
+**c) Ajustar o limite de envios**
+
+Com SMTP próprio, o limite passa a ser configurável em **Authentication → Rate Limits → Rate limit for sending emails**. O valor por omissão (30 por hora) chega bem para uma pessoa.
+
+**d) Testar**
+
+Pede um código na app (passo 5 ou 8). O email chega de "Mota <o-teu-gmail>". Como é enviado de ti para ti, o Gmail pode agrupá-lo nos enviados; procura na caixa de entrada ou pesquisa por "Mota".
+
+> **Alternativa com domínio próprio:** se tiveres um domínio, podes usar o [Resend](https://resend.com) (3.000 emails/mês grátis). Verifica o domínio no Resend (registos DNS) e usa host `smtp.resend.com`, porta `465`, username `resend` e, como password, uma API key do Resend. O *Sender email* tem de ser do teu domínio.
 
 ## 4. Copiar as chaves do Supabase
 
@@ -213,8 +250,9 @@ A lista **"Para a meta ficar certa"** no Início vai-se riscando à medida que p
 | Página de erro com `Falta a variável de ambiente NEXT_PUBLIC_SUPABASE_URL` | Variáveis não definidas na Vercel (ou no `.env.local`) | Passo 6.3 e depois **Redeploy** |
 | "Falta configurar ALLOWED_EMAIL no servidor." | `ALLOWED_EMAIL` não definido | Acrescenta na Vercel → Redeploy |
 | "Este email não tem acesso a esta app." | O email escrito é diferente do `ALLOWED_EMAIL` | Corrige um dos dois (maiúsculas não importam) |
-| O email não chega | Spam; ou o email não é membro da equipa do Supabase; ou limite de envios | Vê o spam. Usa o email da conta Supabase, ou configura um SMTP próprio (ex.: [Resend](https://resend.com), gratuito) em **Authentication → Emails → SMTP Settings** |
-| "Pediste demasiados emails seguidos." | Limite de emails por hora do Supabase | Espera cerca de 1 hora (ou configura SMTP próprio) |
+| O email não chega | SMTP próprio não configurado; ou está no spam | Passo 3.4. Vê o spam e pesquisa por "Mota" no Gmail |
+| Erro ao enviar depois de configurar o Gmail | Palavra-passe de app errada (ou com espaços), ou a password normal do Google em vez da de app | Cria nova palavra-passe de app e cola-a sem espaços. Os erros aparecem em **Logs → Auth** no Supabase |
+| "Pediste demasiados emails seguidos." | Limite de emails por hora | Espera um pouco ou aumenta em **Authentication → Rate Limits** |
 | O email não traz código, só um link | Templates não alterados | Passo 3.2 (os **dois** templates) |
 | "Código inválido ou expirado." | Código antigo: cada pedido novo invalida o anterior; expira em 1 hora | Usa o código do email mais recente |
 | "O link expirou ou já foi usado." | Link aberto duas vezes, ou demasiado tarde | Pede novo código. No iPhone usa sempre o código |
