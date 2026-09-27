@@ -247,7 +247,7 @@ A lista **"Para a meta ficar certa"** no Início vai-se riscando à medida que p
 
 | Sintoma | Causa provável | Solução |
 |---|---|---|
-| Página de erro com `Falta a variável de ambiente NEXT_PUBLIC_SUPABASE_URL` | Variáveis não definidas na Vercel (ou no `.env.local`) | Passo 6.3 e depois **Redeploy** |
+| "A app ainda não está configurada" (ou `Internal Server Error` em versões antigas) | Variáveis do Supabase em falta, ou o URL sem `https://`/com caminhos a mais | A página diz qual é o problema. Corrige em Vercel → Settings → Environment Variables e faz **Redeploy** |
 | "Falta configurar ALLOWED_EMAIL no servidor." | `ALLOWED_EMAIL` não definido | Acrescenta na Vercel → Redeploy |
 | "Este email não tem acesso a esta app." | O email escrito é diferente do `ALLOWED_EMAIL` | Corrige um dos dois (maiúsculas não importam) |
 | O email não chega | SMTP próprio não configurado; ou está no spam | Passo 3.4. Vê o spam e pesquisa por "Mota" no Gmail |
