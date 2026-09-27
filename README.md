@@ -2,6 +2,8 @@
 
 PWA pessoal para acompanhar a poupança para comprar uma mota. Funciona no iPhone (instalada no ecrã principal) e no browser do computador.
 
+> **Para pôr a app a funcionar, segue o [GUIA-DE-ARRANQUE.md](GUIA-DE-ARRANQUE.md)** (passo a passo, com verificações e problemas comuns).
+
 **Stack:** Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Supabase (auth por email + Postgres com RLS + Storage) · Serwist (service worker) · Vitest · Vercel.
 
 ## Ecrãs
