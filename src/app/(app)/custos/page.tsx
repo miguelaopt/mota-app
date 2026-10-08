@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Notice } from "@/components/ui/Badge";
 import { Card, Section, StatRow } from "@/components/ui/Card";
+import { PlanningTabs } from "@/components/PlanningTabs";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { requireSession } from "@/lib/auth";
 import { getCosts } from "@/lib/data/costs";
@@ -29,6 +30,7 @@ export default async function CostsPage() {
   return (
     <>
       <PageHeader title="Custos" />
+      <PlanningTabs current="/custos" />
 
       <Card>
         <div className="grid grid-cols-2 gap-3">

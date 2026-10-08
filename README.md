@@ -10,12 +10,13 @@ PWA pessoal para acompanhar a poupança para comprar uma mota. Funciona no iPhon
 
 | Ecrã | O que faz |
 |---|---|
-| **Início** | Foto da mota, progresso total/meta com %, valor em falta, data prevista, mínimo para andar vs setup completo |
+| **Início** | Foto da mota, bloco do trabalho (próximo turno, turno ativo, último turno), progresso total/meta com %, valor em falta, data prevista, mínimo para andar vs setup completo |
+| **Trabalho** | Picar entrada/saída, pausas, turno em curso, recompensa, horas e turnos em falta, próximos turnos, confirmar poupança, estatísticas |
 | **Contas** | Saldos (atualização rápida), disponível vs investido, % que conta e margem de segurança |
-| **Equipamento** | Itens por comprar/comprados, categorias, prioridades, totais |
-| **Custos** | Custos da compra (contam para a meta) e custos mensais (informativos) |
-| **Histórico** | Todas as atualizações de saldo, por dia |
+| **Planeamento** | Separadores **Equipamento** (itens por comprar/comprados, categorias, prioridades, totais) e **Custos** (da compra, que contam para a meta, e mensais, informativos) |
+| **Histórico** | Atualizações de saldo, turnos e poupança confirmada, por dia, com filtros Tudo · Contas · Trabalho · Poupança |
 | Mota / Definições | Acessíveis a partir do Início (foto e preço da mota; meta mensal, terminar sessão) |
+| Definições do trabalho | Acessíveis a partir do Trabalho (valor/hora ou salário fixo, % para a mota, meta de referência, pausas) |
 
 ## Como são feitas as contas
 
@@ -28,6 +29,18 @@ Toda a lógica está em `src/lib/finance` (funções puras, com testes):
 - **Ritmo de poupança**: média mensal dos últimos 6 meses do histórico de saldos. Cada conta conta a partir do primeiro saldo registado, para que os saldos iniciais não pareçam poupança. São precisos pelo menos 30 dias de histórico; sem isso (ou com ritmo ≤ 0) usa-se a meta mensal das Definições.
 - **Data prevista** = hoje + falta ÷ ritmo.
 
+### Modo Trabalho
+
+Lógica em `src/lib/work` (funções puras, com testes). A regra central: **ganhos estimados ≠ planeado para a mota ≠ poupança real**.
+
+- **Tempo pago** = (saída ou agora) − entrada − pausas não remuneradas. Tudo é calculado a partir dos instantes guardados; o timer do ecrã só redesenha.
+- **Ganhos estimados** = round(tempo pago × valor/hora) e **planeado** = round(ganhos × % para a mota). Montantes em cêntimos, percentagens em pontos base, arredondados só no fim.
+- Ao picar entrada, o turno guarda uma cópia do valor/hora, da % e da meta: mudar as definições não altera turnos antigos.
+- **Terminar um turno nunca altera o saldo.** A poupança só conta quando é confirmada: em *Confirmar poupança* atualizas o saldo de uma conta (ou escolhes uma atualização já feita) e indicas que parte veio do trabalho. Essa atribuição só classifica o aumento e nunca pode ser maior do que ele, por isso o dinheiro não entra duas vezes (função `confirm_work_savings`).
+- **Horas em falta** = em falta ÷ (valor/hora × %). **Turnos equivalentes** = horas ÷ duração de referência (a definida, ou a média dos teus turnos).
+- A data prevista do Início (ritmo real ou meta mensal) mantém-se. O Trabalho mostra à parte um mês aproximado com os turnos por semana definidos, sem lhe somar a meta mensal.
+- **Offline:** picar entrada, pausas e saída ficam guardados no telemóvel (localStorage) e são enviados por ordem quando houver rede. Cada operação tem ids gerados no telemóvel, por isso um duplo toque ou um reenvio não cria registos duplicados. Só há um turno ativo de cada vez, e os turnos não se podem sobrepor.
+
 ---
 
 ## 1. Configurar o Supabase
@@ -39,6 +52,7 @@ Toda a lógica está em `src/lib/finance` (funções puras, com testes):
    3. `20260927000003_balance_snapshots.sql`: histórico automático de saldos
    4. `20260927000004_new_user_seed.sql`: dados iniciais de cada utilizador
    5. `20260927000005_storage.sql`: bucket privado `photos`
+   6. `20261008000001_work_mode.sql`: modo Trabalho (só acrescenta tabelas; o rollback está no topo do ficheiro)
 
    Em alternativa, com a CLI: `npx supabase init` (se ainda não existir `supabase/config.toml`), `npx supabase link --project-ref <ref>` e `npx supabase db push`.
 3. **Auth → URL Configuration**
@@ -135,6 +149,13 @@ scripts/                 geração dos ícones (node scripts/generate-icons.mjs)
 ```
 
 Os ícones são provisórios. Para os trocar, edita `scripts/icon.svg` e corre `node scripts/generate-icons.mjs`.
+
+## Modo Trabalho: próximas fases
+
+| Fase | O que falta |
+|---|---|
+| 2 | Turnos repetidos por dia da semana, exceções e trocas; notificações (antes do turno, dia de pagamento); sequências e estatísticas semanais/mensais; marcos guardados (`milestone_events`) e equivalências por item de equipamento |
+| 3 | Live Activities, Dynamic Island e widgets. Precisam de um invólucro nativo (por exemplo Capacitor) com uma extensão em SwiftUI/ActivityKit. Uma PWA não lhes consegue aceder |
 
 ## Preparado para a fase 2
 

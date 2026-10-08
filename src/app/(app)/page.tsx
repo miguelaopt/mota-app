@@ -2,10 +2,12 @@ import Link from "next/link";
 import { CheckIcon, ChevronRightIcon, MotorcycleIcon, SlidersIcon } from "@/components/icons";
 import { Card, ListGroup, Section, StatRow } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import { WorkHomeCard, WorkProjectionLine } from "@/components/work/WorkHomeCard";
 import { requireSession } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { getDashboardData } from "@/lib/data/dashboard";
 import { signPhotoUrls } from "@/lib/data/photos";
+import { buildWorkClientData, getWorkData } from "@/lib/data/work-view";
 import { formatDuration, formatMonthYear } from "@/lib/dates";
 import type { TargetStatus } from "@/lib/finance/dashboard";
 import type { Forecast } from "@/lib/finance/forecast";
@@ -63,11 +65,18 @@ function TargetCard({ title, target }: { title: string; target: TargetStatus }) 
 }
 
 export default async function HomePage() {
-  const { supabase } = await requireSession();
+  const { supabase, userId } = await requireSession();
   const now = new Date();
-  const { motorcycle, settings, dashboard: d, unpricedGear, unpricedCosts } = await getDashboardData(supabase, now);
+  const [{ motorcycle, settings, dashboard: d, unpricedGear, unpricedCosts }, work] = await Promise.all([
+    getDashboardData(supabase, now),
+    getWorkData(supabase, now),
+  ]);
   const photos = await signPhotoUrls(supabase, [motorcycle?.photoPath]);
   const photoUrl = motorcycle?.photoPath ? photos[motorcycle.photoPath] : undefined;
+  const workData = work ? buildWorkClientData({ userId, now, work, motorcycle, photoUrl: photoUrl ?? null, dashboard: d }) : null;
+  // Projeção (tracejada na barra): planeado em turnos concluídos e ainda não confirmado.
+  const projectedPct =
+    workData && d.full.totalCents > 0 ? ((d.savedCents + workData.pendingPlannedCents) / d.full.totalCents) * 100 : undefined;
   const fullForecast = forecastLabel(d.full.forecast);
   const hasGoal = d.full.totalCents > 0;
 
@@ -120,6 +129,9 @@ export default async function HomePage() {
         </Link>
       </div>
 
+      {/* Trabalho: próximo turno, turno ativo ou resumo do último */}
+      <WorkHomeCard data={workData} model={motorcycle?.model ?? "mota"} />
+
       {/* Progresso principal */}
       {hasGoal ? (
         <Card className="mt-4 p-5">
@@ -128,6 +140,7 @@ export default async function HomePage() {
               <p className="text-sm text-muted">Já juntaste</p>
               <p className="text-[2.1rem] font-bold leading-tight tracking-tight tabular-nums">{formatEur(d.savedCents)}</p>
               <p className="text-sm text-muted tabular-nums">de {formatEur(d.full.totalCents)} para o setup completo</p>
+              {workData && <WorkProjectionLine data={workData} />}
             </div>
             <p
               className={cn(
@@ -140,7 +153,13 @@ export default async function HomePage() {
           </div>
 
           <div className="relative mt-5 pb-5">
-            <ProgressBar pct={d.full.pct} size="lg" tone={d.full.reached ? "success" : "accent"} label={`Progresso: ${formatPct(d.full.pct)}`} />
+            <ProgressBar
+              pct={d.full.pct}
+              projectedPct={projectedPct}
+              size="lg"
+              tone={d.full.reached ? "success" : "accent"}
+              label={`Progresso: ${formatPct(d.full.pct)}`}
+            />
             {d.minimumMarkPct > 0 && d.minimumMarkPct < 100 && (
               <div className="absolute top-0 flex -translate-x-1/2 flex-col items-center" style={{ left: `${d.minimumMarkPct}%` }} aria-hidden>
                 <span className="h-4 w-0.5 rounded-full bg-fg/60" />

@@ -150,3 +150,25 @@ dialog.sheet[open] {
     animation: none;
   }
 }
+
+/* Recompensa ao picar saída: curta e desligada com movimento reduzido. */
+.reward-pop {
+  animation: reward-pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+
+@keyframes reward-pop {
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reward-pop {
+    animation: none;
+  }
+}

@@ -51,6 +51,9 @@ No painel do projeto: **SQL Editor** → **New query**. Para **cada ficheiro**, 
 | 3 | `supabase/migrations/20260927000003_balance_snapshots.sql` | Histórico automático de saldos |
 | 4 | `supabase/migrations/20260927000004_new_user_seed.sql` | Dados iniciais (contas, equipamento, custos) no primeiro login |
 | 5 | `supabase/migrations/20260927000005_storage.sql` | Bucket privado `photos` para as fotos |
+| 6 | `supabase/migrations/20261008000001_work_mode.sql` | Modo Trabalho: turnos, pausas e poupança confirmada (só acrescenta tabelas) |
+
+> **Já tinhas a app a funcionar?** Corre só o ficheiro 6. Não mexe nos dados que já existem.
 
 > Corre cada ficheiro **uma só vez**. Um erro como `type "account_kind" already exists` quer dizer que esse ficheiro já tinha sido corrido.
 
@@ -61,7 +64,7 @@ select tablename, rowsecurity from pg_tables where schemaname = 'public' order b
 select id, public from storage.buckets where id = 'photos';
 ```
 
-Deves ver 6 tabelas (`accounts`, `balance_snapshots`, `costs`, `gear_items`, `motorcycles`, `settings`), todas com `rowsecurity = true`, e o bucket `photos` com `public = false`.
+Deves ver 12 tabelas (`accounts`, `balance_snapshots`, `costs`, `gear_items`, `motorcycles`, `savings_attribution_shifts`, `savings_attributions`, `scheduled_shifts`, `settings`, `shift_breaks`, `shifts`, `work_settings`), todas com `rowsecurity = true`, e o bucket `photos` com `public = false`.
 
 ## 3. Configurar a autenticação
 

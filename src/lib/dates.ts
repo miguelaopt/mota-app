@@ -14,7 +14,7 @@ const weekdayDayMonth = fmt({ weekday: "long", day: "numeric", month: "long" });
 const time = fmt({ hour: "2-digit", minute: "2-digit" });
 const isoDay = new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE });
 
-const toDate = (value: Date | string) => (typeof value === "string" ? new Date(value) : value);
+const toDate = (value: Date | string | number) => (value instanceof Date ? value : new Date(value));
 
 /** "março de 2027" */
 export function formatMonthYear(value: Date | string): string {
@@ -27,7 +27,7 @@ export function formatShortDate(value: Date | string, now: Date = new Date()): s
   return dayKey(date).slice(0, 4) === dayKey(now).slice(0, 4) ? dayMonth.format(date) : dayMonthYear.format(date);
 }
 
-export function formatTime(value: Date | string): string {
+export function formatTime(value: Date | string | number): string {
   return time.format(toDate(value));
 }
 
@@ -72,4 +72,72 @@ export function formatDuration(months: number): string {
   if (years) parts.push(years === 1 ? "1 ano" : `${years} anos`);
   if (rest) parts.push(rest === 1 ? "1 mês" : `${rest} meses`);
   return `daqui a ${parts.join(" e ")}`;
+}
+
+const wallClock = new Intl.DateTimeFormat("en-GB", {
+  timeZone: TIME_ZONE,
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+});
+
+function wallParts(date: Date): Record<"year" | "month" | "day" | "hour" | "minute" | "second", number> {
+  const parts = Object.fromEntries(wallClock.formatToParts(date).map((p) => [p.type, p.value]));
+  return {
+    year: Number(parts.year),
+    month: Number(parts.month),
+    day: Number(parts.day),
+    hour: Number(parts.hour),
+    minute: Number(parts.minute),
+    second: Number(parts.second),
+  };
+}
+
+/** Diferença (ms) entre a hora de Lisboa e UTC num dado instante (0 no inverno, 1 h no verão). */
+function lisbonOffsetMs(instant: number): number {
+  const p = wallParts(new Date(instant));
+  const asUtc = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+  return asUtc - Math.floor(instant / 1000) * 1000;
+}
+
+/** Valor para um <input type="datetime-local">, na hora de Lisboa: "2026-10-08T18:30". */
+export function toLocalInput(value: Date | string | number): string {
+  const p = wallParts(toDate(value));
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}`;
+}
+
+/**
+ * Interpreta "2026-10-08T18:30" como hora de Lisboa e devolve o instante (UTC).
+ * Na hora que se repete quando o relógio atrasa, escolhe a primeira.
+ * Devolve null se o texto não for válido.
+ */
+export function fromLocalInput(value: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value.trim());
+  if (!m) return null;
+  const [year, month, day, hour, minute, second] = m.slice(1).map((v) => Number(v ?? 0));
+  if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 59) return null;
+  const wall = Date.UTC(year, month - 1, day, hour, minute, second);
+  if (new Date(wall).getUTCDate() !== day) return null;
+  // O desvio de Lisboa é o de antes ou o de depois de uma eventual mudança de hora.
+  const offsets = [lisbonOffsetMs(wall - 6 * 60 * 60 * 1000), lisbonOffsetMs(wall + 6 * 60 * 60 * 1000)];
+  const valid = offsets.map((offset) => wall - offset).filter((t) => lisbonOffsetMs(t) === wall - t);
+  // Hora repetida (o relógio atrasa): a primeira. Hora inexistente (adianta): desvio de antes.
+  return new Date(valid.length > 0 ? Math.min(...valid) : wall - offsets[0]);
+}
+
+const weekdayShort = fmt({ weekday: "short", day: "numeric", month: "short" });
+
+/** "Hoje", "Amanhã" ou "qui., 9 de out." para planear turnos. */
+export function formatShiftDay(value: Date | number, now: Date = new Date()): string {
+  const date = toDate(value);
+  const days = daysBetween(dayKey(now), dayKey(date));
+  if (days === 0) return "Hoje";
+  if (days === 1) return "Amanhã";
+  if (days === -1) return "Ontem";
+  return weekdayShort.format(date);
 }

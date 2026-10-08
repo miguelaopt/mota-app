@@ -3,20 +3,21 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
-import { ChartIcon, HelmetIcon, HomeIcon, ReceiptIcon, WalletIcon } from "@/components/icons";
+import { BriefcaseIcon, ChartIcon, ClipboardIcon, HomeIcon, WalletIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 
 const TABS: Array<{ href: string; label: string; icon: ComponentType<{ size?: number }>; also?: string[] }> = [
   { href: "/", label: "Início", icon: HomeIcon, also: ["/mota", "/definicoes"] },
+  { href: "/trabalho", label: "Trabalho", icon: BriefcaseIcon },
   { href: "/contas", label: "Contas", icon: WalletIcon },
-  { href: "/equipamento", label: "Equipamento", icon: HelmetIcon },
-  { href: "/custos", label: "Custos", icon: ReceiptIcon },
+  // Planeamento junta Equipamento e Custos (separadores no topo das duas páginas).
+  { href: "/equipamento", label: "Planeamento", icon: ClipboardIcon, also: ["/custos"] },
   { href: "/historico", label: "Histórico", icon: ChartIcon },
 ];
 
 function isActive(pathname: string, href: string, also: string[] = []) {
   if (href === "/") return pathname === "/" || also.some((p) => pathname.startsWith(p));
-  return pathname === href || pathname.startsWith(`${href}/`);
+  return [href, ...also].some((p) => pathname === p || pathname.startsWith(`${p}/`));
 }
 
 export function TabBar() {

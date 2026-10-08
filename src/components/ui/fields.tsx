@@ -47,7 +47,7 @@ export function MoneyInput({
         inputMode="decimal"
         autoComplete="off"
         placeholder="0,00"
-        defaultValue={centsToInput(defaultCents)}
+        defaultValue={props.value === undefined ? centsToInput(defaultCents) : undefined}
         className={cn(inputClass, "pr-9 tabular-nums", className)}
         {...props}
       />
