@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayKey, formatDayHeading, formatDuration, formatMonthYear, formatRelative } from "./dates";
+import { dayKey, formatDayHeading, formatDuration, formatMonthYear, formatRelative, fromLocalInput, toLocalInput } from "./dates";
 
 const now = new Date("2026-09-27T10:00:00Z");
 
@@ -50,5 +50,29 @@ describe("formatDuration", () => {
     [25, "daqui a 2 anos e 1 mês"],
   ])("%d meses → %s", (months, expected) => {
     expect(formatDuration(months)).toBe(expected);
+  });
+});
+
+describe("toLocalInput / fromLocalInput (hora de Lisboa)", () => {
+  it("converte nos dois sentidos, no verão e no inverno", () => {
+    expect(toLocalInput(new Date("2026-10-08T17:30:00Z"))).toBe("2026-10-08T18:30");
+    expect(fromLocalInput("2026-10-08T18:30")?.toISOString()).toBe("2026-10-08T17:30:00.000Z");
+    expect(fromLocalInput("2026-12-08T18:30")?.toISOString()).toBe("2026-12-08T18:30:00.000Z");
+  });
+
+  it("hora repetida quando o relógio atrasa: escolhe a primeira", () => {
+    // 25 out. 2026: 02:00 WEST volta a 01:00 WET; 01:30 acontece duas vezes.
+    expect(fromLocalInput("2026-10-25T01:30")?.toISOString()).toBe("2026-10-25T00:30:00.000Z");
+  });
+
+  it("hora inexistente quando o relógio adianta", () => {
+    // 29 mar. 2026: 01:00 WET passa a 02:00 WEST; 01:30 não existe.
+    expect(fromLocalInput("2026-03-29T01:30")?.toISOString()).toBe("2026-03-29T01:30:00.000Z");
+  });
+
+  it("rejeita texto inválido", () => {
+    expect(fromLocalInput("")).toBeNull();
+    expect(fromLocalInput("2026-02-31T10:00")).toBeNull();
+    expect(fromLocalInput("ontem")).toBeNull();
   });
 });

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Notice } from "@/components/ui/Badge";
 import { Card, Section, StatRow } from "@/components/ui/Card";
+import { PlanningTabs } from "@/components/PlanningTabs";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { requireSession } from "@/lib/auth";
 import { getGearItems } from "@/lib/data/gear";
@@ -48,6 +49,7 @@ export default async function GearPage() {
   return (
     <>
       <PageHeader title="Equipamento" />
+      <PlanningTabs current="/equipamento" />
 
       <Card>
         <p className="text-sm text-muted">Por comprar</p>

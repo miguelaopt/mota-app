@@ -260,6 +260,243 @@ export type Database = {
           },
         ];
       };
+      work_settings: {
+        Row: {
+          user_id: string;
+          job_name: string;
+          pay_mode: Database["public"]["Enums"]["pay_mode"];
+          hourly_rate_cents: number;
+          monthly_salary_cents: number | null;
+          monthly_hours: number | null;
+          allocation_bp: number;
+          target: Database["public"]["Enums"]["goal_target"];
+          paid_breaks: boolean;
+          reference_shift_minutes: number | null;
+          shifts_per_week: number | null;
+          time_zone: string;
+          haptics: boolean;
+          animations: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id?: string;
+          job_name: string;
+          pay_mode?: Database["public"]["Enums"]["pay_mode"];
+          hourly_rate_cents: number;
+          monthly_salary_cents?: number | null;
+          monthly_hours?: number | null;
+          allocation_bp?: number;
+          target?: Database["public"]["Enums"]["goal_target"];
+          paid_breaks?: boolean;
+          reference_shift_minutes?: number | null;
+          shifts_per_week?: number | null;
+          time_zone?: string;
+          haptics?: boolean;
+          animations?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          job_name?: string;
+          pay_mode?: Database["public"]["Enums"]["pay_mode"];
+          hourly_rate_cents?: number;
+          monthly_salary_cents?: number | null;
+          monthly_hours?: number | null;
+          allocation_bp?: number;
+          target?: Database["public"]["Enums"]["goal_target"];
+          paid_breaks?: boolean;
+          reference_shift_minutes?: number | null;
+          shifts_per_week?: number | null;
+          time_zone?: string;
+          haptics?: boolean;
+          animations?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      scheduled_shifts: {
+        Row: {
+          id: string;
+          user_id: string;
+          starts_at: string;
+          ends_at: string;
+          unpaid_break_minutes: number;
+          status: Database["public"]["Enums"]["scheduled_shift_status"];
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          starts_at: string;
+          ends_at: string;
+          unpaid_break_minutes?: number;
+          status?: Database["public"]["Enums"]["scheduled_shift_status"];
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          starts_at?: string;
+          ends_at?: string;
+          unpaid_break_minutes?: number;
+          status?: Database["public"]["Enums"]["scheduled_shift_status"];
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      shifts: {
+        Row: {
+          id: string;
+          user_id: string;
+          motorcycle_id: string | null;
+          scheduled_shift_id: string | null;
+          started_at: string;
+          ended_at: string | null;
+          planned_end_at: string | null;
+          pay_mode: Database["public"]["Enums"]["pay_mode"];
+          hourly_rate_cents: number;
+          allocation_bp: number;
+          target: Database["public"]["Enums"]["goal_target"];
+          version: number;
+          edited_at: string | null;
+          original_started_at: string | null;
+          original_ended_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          user_id?: string;
+          motorcycle_id?: string | null;
+          scheduled_shift_id?: string | null;
+          started_at: string;
+          ended_at?: string | null;
+          planned_end_at?: string | null;
+          pay_mode: Database["public"]["Enums"]["pay_mode"];
+          hourly_rate_cents: number;
+          allocation_bp: number;
+          target: Database["public"]["Enums"]["goal_target"];
+          version?: number;
+          edited_at?: string | null;
+          original_started_at?: string | null;
+          original_ended_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          motorcycle_id?: string | null;
+          scheduled_shift_id?: string | null;
+          started_at?: string;
+          ended_at?: string | null;
+          planned_end_at?: string | null;
+          pay_mode?: Database["public"]["Enums"]["pay_mode"];
+          hourly_rate_cents?: number;
+          allocation_bp?: number;
+          target?: Database["public"]["Enums"]["goal_target"];
+          version?: number;
+          edited_at?: string | null;
+          original_started_at?: string | null;
+          original_ended_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      shift_breaks: {
+        Row: {
+          id: string;
+          user_id: string;
+          shift_id: string;
+          started_at: string;
+          ended_at: string | null;
+          paid: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          user_id?: string;
+          shift_id: string;
+          started_at: string;
+          ended_at?: string | null;
+          paid: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          shift_id?: string;
+          started_at?: string;
+          ended_at?: string | null;
+          paid?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      savings_attributions: {
+        Row: {
+          id: string;
+          user_id: string;
+          account_id: string;
+          snapshot_id: number | null;
+          motorcycle_id: string | null;
+          amount_cents: number;
+          notes: string | null;
+          confirmed_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          user_id?: string;
+          account_id: string;
+          snapshot_id?: number | null;
+          motorcycle_id?: string | null;
+          amount_cents: number;
+          notes?: string | null;
+          confirmed_at?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          account_id?: string;
+          snapshot_id?: number | null;
+          motorcycle_id?: string | null;
+          amount_cents?: number;
+          notes?: string | null;
+          confirmed_at?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      savings_attribution_shifts: {
+        Row: {
+          attribution_id: string;
+          shift_id: string;
+          user_id: string;
+        };
+        Insert: {
+          attribution_id: string;
+          shift_id: string;
+          user_id?: string;
+        };
+        Update: {
+          attribution_id?: string;
+          shift_id?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -269,6 +506,18 @@ export type Database = {
         Args: { p_motorcycle_id: string };
         Returns: undefined;
       };
+      confirm_work_savings: {
+        Args: {
+          p_id: string;
+          p_account_id: string;
+          p_amount_cents: number;
+          p_new_balance: number | null;
+          p_snapshot_id: number | null;
+          p_shift_ids: string[];
+          p_notes: string | null;
+        };
+        Returns: string;
+      };
     };
     Enums: {
       account_kind: "available" | "invested";
@@ -276,6 +525,9 @@ export type Database = {
       item_priority: "essential" | "later";
       gear_status: "to_buy" | "bought";
       cost_kind: "one_off" | "monthly";
+      pay_mode: "hourly" | "monthly";
+      goal_target: "minimum" | "full";
+      scheduled_shift_status: "planned" | "done" | "cancelled";
     };
     CompositeTypes: {
       [_ in never]: never;
