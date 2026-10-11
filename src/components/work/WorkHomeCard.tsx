@@ -1,16 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { BriefcaseIcon, ChevronRightIcon, PlayIcon } from "@/components/icons";
+import { BriefcaseIcon, PlayIcon } from "@/components/icons";
 import { Button, buttonClass } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { formatShiftDay, formatTime } from "@/lib/dates";
+import { formatTime } from "@/lib/dates";
 import { formatEur } from "@/lib/finance/money";
 import { haptic } from "@/lib/haptics";
-import { formatBp, formatClock, formatHm, formatShortDuration } from "@/lib/work/format";
-import { estimatePlannedShift, estimateShift, HOUR_MS } from "@/lib/work/shift";
+import { formatClock, formatHm, formatShortDuration } from "@/lib/work/format";
+import { estimateShift } from "@/lib/work/shift";
 import type { WorkClientData } from "@/lib/work/view";
-import { buildClockIn, earningsLabelLower } from "./clockHelpers";
+import { earningsLabelLower } from "./clockHelpers";
+import { WorkToday } from "./WorkToday";
 import { useNow, useWorkClock } from "./useWorkClock";
 
 /** Bloco do modo Trabalho no Início. Sem configuração, convida a configurar. */
@@ -90,63 +91,7 @@ function ConfiguredCard({ data }: { data: WorkClientData }) {
     );
   }
 
-  const local = clock.lastCompleted;
-  const localRecent = local && local.id !== clock.dismissedCompletedId && data.renderedAt - local.endedAt < 12 * HOUR_MS ? local : null;
-  const recent = localRecent
-    ? { ...estimateShift(localRecent, localRecent.endedAt), href: "/trabalho" }
-    : data.recentCompleted
-      ? { ...data.recentCompleted, href: `/trabalho/turnos/${data.recentCompleted.id}` }
-      : null;
-
-  if (recent) {
-    return (
-      <Card className="mt-4 p-4">
-        <p className="text-sm font-medium text-success">Turno concluído · {formatHm(recent.paidMs)} pagas</p>
-        <p className="mt-1 text-xl font-bold tabular-nums">{formatEur(recent.plannedCents)} planeados para a mota</p>
-        <p className="text-sm text-muted">Ainda não confirmado: o saldo só muda quando guardares o dinheiro.</p>
-        <Link href={recent.href} className={buttonClass("secondary", "md", "mt-3 w-full")}>
-          Ver resumo
-        </Link>
-      </Card>
-    );
-  }
-
-  const clockIn = () => {
-    if (!clock.dispatch(buildClockIn(data, Date.now()))) haptic(terms.haptics);
-  };
-  const next = data.nextShift;
-  const plan = next ? estimatePlannedShift(next, terms) : null;
-
-  return (
-    <Card className="mt-4 p-4">
-      <Link href="/trabalho" className="flex items-start justify-between gap-3 active:opacity-70">
-        {next && plan ? (
-          <div className="min-w-0">
-            <p className="text-sm text-muted">Próximo turno · {data.settings.jobName}</p>
-            <p className="text-lg font-bold tabular-nums first-letter:uppercase">
-              {formatShiftDay(next.startsAt, new Date(data.renderedAt))}, {formatTime(next.startsAt)}–{formatTime(next.endsAt)}
-            </p>
-            <p className="text-sm text-muted tabular-nums">
-              {formatHm(plan.paidMs)} · {formatEur(plan.earnedCents)} {earningsLabelLower(terms.payMode)} ·{" "}
-              <span className="font-medium text-accent">{formatEur(plan.plannedCents)} para a mota</span>
-            </p>
-          </div>
-        ) : (
-          <div className="min-w-0">
-            <p className="text-sm text-muted">{data.settings.jobName}</p>
-            <p className="text-lg font-bold tabular-nums">
-              {formatEur(terms.hourlyRateCents)}/h · {formatBp(terms.allocationBp)} para a mota
-            </p>
-            <p className="text-sm text-muted">Sem turno planeado.</p>
-          </div>
-        )}
-        <ChevronRightIcon size={18} className="mt-1 shrink-0 text-muted" />
-      </Link>
-      <Button className="mt-3 w-full" onClick={clockIn}>
-        <PlayIcon size={18} /> Picar entrada
-      </Button>
-    </Card>
-  );
+  return <WorkToday data={data} onHome />;
 }
 
 /** Linha do resumo financeiro: planeado neste turno / por confirmar, sempre separado do saldo real. */

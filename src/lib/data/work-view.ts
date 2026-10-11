@@ -1,27 +1,31 @@
 import "server-only";
+import { toLocalInput } from "@/lib/dates";
 import type { Dashboard } from "@/lib/finance/dashboard";
+import { DAY_MS } from "@/lib/finance/history";
 import type { ClockShift } from "@/lib/work/clock";
 import { referenceDuration } from "@/lib/work/goal";
-import { estimateShift, HOUR_MS } from "@/lib/work/shift";
+import { estimateShift } from "@/lib/work/shift";
 import { computeWorkStats } from "@/lib/work/stats";
 import type { WorkClientData } from "@/lib/work/view";
 import type { Db } from "@/lib/supabase/server";
 import type { Motorcycle } from "./motorcycles";
-import { getAttributions, getShifts, getUpcomingScheduledShifts, getWorkSettings, type ShiftRecord } from "./work";
-
-/** Último turno "acabado de terminar" mostrado no Início. */
-const RECENT_MS = 12 * HOUR_MS;
+import { getAttributions, getCalendarShifts, getShifts, getUpcomingScheduledShifts, getWorkSettings, type ShiftRecord } from "./work";
 
 export async function getWorkData(db: Db, now: Date) {
   const settings = await getWorkSettings(db);
   if (!settings) return null;
-  const [shifts, attributions, upcoming] = await Promise.all([getShifts(db), getAttributions(db), getUpcomingScheduledShifts(db, now)]);
+  const [shifts, attributions, upcoming, calendar] = await Promise.all([
+    getShifts(db),
+    getAttributions(db),
+    getUpcomingScheduledShifts(db, now),
+    getCalendarShifts(db, new Date(now.getTime() - 62 * DAY_MS), new Date(now.getTime() + 124 * DAY_MS)),
+  ]);
   const stats = computeWorkStats(
     shifts,
     attributions.map((a) => a.amountCents),
     now,
   );
-  return { settings, shifts, attributions, upcoming, stats };
+  return { settings, shifts, attributions, upcoming, calendar, stats };
 }
 
 export type WorkData = NonNullable<Awaited<ReturnType<typeof getWorkData>>>;
@@ -56,12 +60,10 @@ export function buildWorkClientData({
   photoUrl: string | null;
   dashboard: Dashboard;
 }): WorkClientData {
-  const { settings, shifts, upcoming, stats } = work;
+  const { settings, shifts, upcoming, calendar, stats } = work;
+  const byScheduled = new Map(shifts.filter((s) => s.scheduledShiftId && s.endedAt != null).map((s) => [s.scheduledShiftId!, s]));
   const active = shifts.find((s) => s.endedAt == null) ?? null;
   const completed = shifts.filter((s) => s.endedAt != null);
-  const last = completed[0];
-  const recent =
-    last && last.attributionId == null && now.getTime() - last.endedAt! < RECENT_MS ? estimateShift(last, last.endedAt!) : null;
 
   return {
     userId,
@@ -77,8 +79,21 @@ export function buildWorkClientData({
       animations: settings.animations,
     },
     activeShift: active ? toClockShift(active) : null,
+    calendar: calendar.map((c) => {
+      const done = byScheduled.get(c.id);
+      return {
+        id: c.id,
+        startsAt: c.startsAt,
+        endsAt: c.endsAt,
+        unpaidBreakMinutes: c.unpaidBreakMinutes,
+        status: c.status === "done" || done ? "done" : "planned",
+        shiftId: done?.id ?? null,
+        doneCents: done ? estimateShift(done, done.endedAt!).plannedCents : null,
+      };
+    }),
+    defaultShiftMinutes: settings.referenceShiftMinutes ?? 300,
+    lastStartTime: calendar.length > 0 ? toLocalInput(calendar[calendar.length - 1].startsAt).slice(11) : null,
     nextShift: upcoming[0] ?? null,
-    recentCompleted: recent && last ? { id: last.id, endedAt: last.endedAt!, paidMs: recent.paidMs, plannedCents: recent.plannedCents } : null,
     motorcycle: motorcycle ? { id: motorcycle.id, model: motorcycle.model, photoUrl } : null,
     goal: {
       savedCents: dashboard.savedCents,

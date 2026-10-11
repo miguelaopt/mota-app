@@ -2,6 +2,18 @@ import type { Cents } from "@/lib/finance/money";
 import type { ClockShift } from "./clock";
 import type { GoalTarget, PayMode } from "./shift";
 
+/** Um dia de trabalho no calendário. */
+export interface CalendarEntry {
+  id: string;
+  startsAt: number;
+  endsAt: number;
+  unpaidBreakMinutes: number;
+  status: "planned" | "done";
+  /** Turno registado com "Turno feito" (id) e o que ficou planeado para a mota. */
+  shiftId: string | null;
+  doneCents: Cents | null;
+}
+
 /** Dados que o servidor passa aos componentes do modo Trabalho (serializáveis). */
 export interface WorkClientData {
   userId: string;
@@ -18,9 +30,13 @@ export interface WorkClientData {
     animations: boolean;
   };
   activeShift: ClockShift | null;
+  /** Calendário: do mês anterior até três meses à frente. */
+  calendar: CalendarEntry[];
+  /** Duração por omissão de um turno novo no calendário (minutos). */
+  defaultShiftMinutes: number;
+  /** Hora de entrada do último turno do calendário ("18:30"), para sugerir. */
+  lastStartTime: string | null;
   nextShift: { id: string; startsAt: number; endsAt: number; unpaidBreakMinutes: number } | null;
-  /** Último turno terminado nas últimas horas e ainda por confirmar. */
-  recentCompleted: { id: string; endedAt: number; paidMs: number; plannedCents: Cents } | null;
   motorcycle: { id: string; model: string; photoUrl: string | null } | null;
   goal: {
     /** Dinheiro real que já conta para a mota. */

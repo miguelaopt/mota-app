@@ -72,6 +72,47 @@ async function overlappingEnd(db: Db, at: number, exceptId: string): Promise<num
 }
 
 async function applyOnServer(db: Db, op: WorkOp, serverNow: number): Promise<void> {
+  if (op.type === "complete") {
+    if (await findShift(db, op.shift.id)) return; // já registado (duplo toque ou reenvio)
+    const s = op.shift;
+    if (s.startedAt > serverNow + 5 * MINUTE_MS) throw new FormError("Este turno ainda não começou.");
+    const problem = validateShiftTimes({ startedAt: s.startedAt, endedAt: s.endedAt, breaks: s.breaks });
+    if (problem) throw new FormError(problem);
+    const { data: overlap, error: overlapError } = await db
+      .from("shifts")
+      .select("id")
+      .lt("started_at", iso(s.endedAt))
+      .or(`ended_at.is.null,ended_at.gt.${iso(s.startedAt)}`)
+      .limit(1);
+    if (overlapError) throw new Error(overlapError.message);
+    if (overlap.length > 0) throw new FormError("Já tens um turno registado a essa hora.");
+
+    const scheduledId = await exists(db, "scheduled_shifts", s.scheduledShiftId);
+    check(
+      await db.from("shifts").insert({
+        id: s.id,
+        started_at: iso(s.startedAt),
+        ended_at: iso(s.endedAt),
+        planned_end_at: iso(s.endedAt),
+        scheduled_shift_id: scheduledId,
+        motorcycle_id: await exists(db, "motorcycles", s.motorcycleId),
+        pay_mode: s.payMode,
+        hourly_rate_cents: s.hourlyRateCents,
+        allocation_bp: s.allocationBp,
+        target: s.target,
+      }),
+    );
+    if (s.breaks.length > 0) {
+      check(
+        await db.from("shift_breaks").insert(
+          s.breaks.map((b) => ({ id: b.id, shift_id: s.id, started_at: iso(b.startedAt), ended_at: iso(b.endedAt!), paid: b.paid })),
+        ),
+      );
+    }
+    if (scheduledId) check(await db.from("scheduled_shifts").update({ status: "done" }).eq("id", scheduledId));
+    return;
+  }
+
   if (op.type === "clock_in") {
     if (await findShift(db, op.shift.id)) return; // pedido repetido
     const s = op.shift;
@@ -221,11 +262,13 @@ export async function saveWorkSettingsAction(_prev: ActionResult, form: FormData
 // Próximo turno (planeado à mão)
 // ---------------------------------------------------------------------------
 
-function nextDay(date: string): string {
+function addDays(date: string, days: number): string {
   const d = new Date(`${date}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + 1);
+  d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }
+
+const nextDay = (date: string) => addDays(date, 1);
 
 export async function saveScheduledShiftAction(_prev: ActionResult, form: FormData): Promise<ActionResult> {
   return runAction(async ({ supabase }) => {
@@ -253,9 +296,30 @@ export async function saveScheduledShiftAction(_prev: ActionResult, form: FormDa
 
     if (form.get("id")) {
       check(await supabase.from("scheduled_shifts").update(fields).eq("id", getId(form)));
-    } else {
-      check(await supabase.from("scheduled_shifts").insert(fields));
+      return;
     }
+
+    // Repetir à mesma hora nas semanas seguintes (a hora de Lisboa mantém-se
+    // mesmo quando muda a hora legal).
+    const weeks = Number(form.get("repeat_weeks") ?? 0);
+    if (!Number.isInteger(weeks) || weeks < 0 || weeks > 26) throw new FormError("Repetição inválida.");
+    const rows = [];
+    for (let w = 0; w <= weeks; w++) {
+      const day = addDays(date, 7 * w);
+      const start = fromLocalInput(`${day}T${startTime}`)!;
+      const end = fromLocalInput(`${endTime > startTime ? day : nextDay(day)}T${endTime}`)!;
+      rows.push({ ...fields, starts_at: start.toISOString(), ends_at: end.toISOString() });
+    }
+    // Não duplica dias que já têm um turno a essa hora.
+    const { data: existing, error } = await supabase
+      .from("scheduled_shifts")
+      .select("starts_at, ends_at")
+      .lt("starts_at", rows[rows.length - 1].ends_at)
+      .gt("ends_at", rows[0].starts_at);
+    if (error) throw new Error(error.message);
+    const free = rows.filter((r) => !existing.some((e) => e.starts_at < r.ends_at && e.ends_at > r.starts_at));
+    if (free.length === 0) throw new FormError("Já tens um turno planeado a essa hora.");
+    check(await supabase.from("scheduled_shifts").insert(free));
   });
 }
 
@@ -333,9 +397,13 @@ export async function deleteShiftAction(_prev: ActionResult, form: FormData): Pr
     const id = getId(form);
     const { data: link } = await supabase.from("savings_attribution_shifts").select("attribution_id").eq("shift_id", id).maybeSingle();
     if (link) throw new FormError("Este turno faz parte de uma poupança confirmada. Anula essa confirmação primeiro.");
-    const { data: shift } = await supabase.from("shifts").select("ended_at").eq("id", id).maybeSingle();
+    const { data: shift } = await supabase.from("shifts").select("ended_at, scheduled_shift_id").eq("id", id).maybeSingle();
     if (shift && !shift.ended_at) throw new FormError("Pica a saída antes de apagar o turno.");
     check(await supabase.from("shifts").delete().eq("id", id));
+    // O turno volta a ficar por fazer no calendário.
+    if (shift?.scheduled_shift_id) {
+      check(await supabase.from("scheduled_shifts").update({ status: "planned" }).eq("id", shift.scheduled_shift_id));
+    }
   });
 }
 

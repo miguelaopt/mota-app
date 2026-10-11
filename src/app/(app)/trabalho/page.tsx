@@ -6,17 +6,18 @@ import { buttonClass } from "@/components/ui/Button";
 import { Card, ListGroup, Section, StatRow } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { WorkClock } from "@/components/work/WorkClock";
+import { WorkToday } from "@/components/work/WorkToday";
 import { requireSession } from "@/lib/auth";
 import { getDashboardData } from "@/lib/data/dashboard";
 import { signPhotoUrls } from "@/lib/data/photos";
 import { buildWorkClientData, getWorkData } from "@/lib/data/work-view";
-import { dayKey, formatMonthYear, formatShiftDay, formatShortDate, formatTime, toLocalInput } from "@/lib/dates";
+import { formatMonthYear, formatShortDate, formatTime } from "@/lib/dates";
 import { formatEur } from "@/lib/finance/money";
 import { formatBp, formatHm, formatHoursCeil } from "@/lib/work/format";
 import { equivalentShifts, hoursToGoal, referenceDuration, workForecast } from "@/lib/work/goal";
-import { estimatePlannedShift, estimateShift, type GoalTarget } from "@/lib/work/shift";
+import { estimateShift, type GoalTarget } from "@/lib/work/shift";
 import { TARGET_LABEL } from "@/lib/work/view";
-import { ScheduledShifts, type ScheduledRow } from "./ScheduledShifts";
+import { WorkCalendar } from "./WorkCalendar";
 
 export const metadata: Metadata = { title: "Trabalho" };
 
@@ -50,26 +51,12 @@ export default async function WorkPage() {
   const photos = await signPhotoUrls(supabase, [motorcycle?.photoPath]);
   const photoUrl = motorcycle?.photoPath ? (photos[motorcycle.photoPath] ?? null) : null;
   const data = buildWorkClientData({ userId, now, work, motorcycle, photoUrl, dashboard });
-  const { settings, stats, shifts, upcoming } = work;
+  const { settings, stats, shifts } = work;
   const completed = shifts.filter((s) => s.endedAt != null);
   const reference = referenceDuration(
     settings.referenceShiftMinutes,
     completed.map((s) => estimateShift(s, s.endedAt!).paidMs),
   );
-
-  const scheduledRows: ScheduledRow[] = upcoming.map((s) => {
-    const plan = estimatePlannedShift(s, settings);
-    const [date, start] = toLocalInput(s.startsAt).split("T");
-    return {
-      id: s.id,
-      title: `${formatShiftDay(s.startsAt, now)} · ${formatTime(s.startsAt)}–${formatTime(s.endsAt)}`,
-      detail: `${formatHm(plan.paidMs)} pagas · ${formatEur(plan.plannedCents)} planeados para a mota`,
-      date,
-      start,
-      end: toLocalInput(s.endsAt).split("T")[1],
-      unpaidBreakMinutes: s.unpaidBreakMinutes,
-    };
-  });
 
   const targetRows: Array<{ target: GoalTarget; totalCents: number; missingCents: number }> = [
     { target: "minimum", totalCents: dashboard.minimum.totalCents, missingCents: dashboard.minimum.missingCents },
@@ -101,7 +88,12 @@ export default async function WorkPage() {
         }
       />
 
-      <WorkClock data={data} />
+      {data.activeShift ? <WorkClock data={data} /> : <WorkToday data={data} />}
+
+      <Section title="Calendário" className="scroll-mt-4">
+        <div id="calendario" />
+        <WorkCalendar data={data} />
+      </Section>
 
       <Section title="Para a mota">
         <Card className="space-y-3">
@@ -195,10 +187,6 @@ export default async function WorkPage() {
             Confirmar poupança
           </Link>
         )}
-      </Section>
-
-      <Section title="Próximos turnos">
-        <ScheduledShifts rows={scheduledRows} today={dayKey(now)} />
       </Section>
 
       <Section title="Turnos registados">

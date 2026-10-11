@@ -189,6 +189,31 @@ export async function getUpcomingScheduledShifts(db: Db, now: Date): Promise<Sch
   }));
 }
 
+export interface CalendarShift extends ScheduledShift {
+  status: "planned" | "done" | "cancelled";
+}
+
+/** Turnos do calendário que tocam no intervalo [from, to], de qualquer estado. */
+export async function getCalendarShifts(db: Db, from: Date, to: Date): Promise<CalendarShift[]> {
+  const { data, error } = await db
+    .from("scheduled_shifts")
+    .select("id, starts_at, ends_at, unpaid_break_minutes, notes, status")
+    .lt("starts_at", to.toISOString())
+    .gt("ends_at", from.toISOString())
+    .neq("status", "cancelled")
+    .order("starts_at")
+    .limit(1000);
+  if (error) throw new Error(error.message);
+  return data.map((row) => ({
+    id: row.id,
+    startsAt: Date.parse(row.starts_at),
+    endsAt: Date.parse(row.ends_at),
+    unpaidBreakMinutes: row.unpaid_break_minutes,
+    notes: row.notes,
+    status: row.status,
+  }));
+}
+
 export interface SavingsAttribution {
   id: string;
   accountId: string;

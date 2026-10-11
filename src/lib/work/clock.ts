@@ -1,4 +1,4 @@
-import { MINUTE_MS, type GoalTarget, type PayMode, type ShiftBreak } from "./shift";
+import type { GoalTarget, PayMode, ShiftBreak } from "./shift";
 
 /**
  * Operações do relógio de ponto. São aplicadas primeiro no telemóvel (estado
@@ -25,6 +25,8 @@ export interface CompletedClockShift extends ClockShift {
 
 export type WorkOp =
   | { type: "clock_in"; shift: ClockShift }
+  /** "Turno feito": regista de uma vez um turno do calendário (id = id do turno planeado). */
+  | { type: "complete"; shift: CompletedClockShift }
   | { type: "break_start"; shiftId: string; breakId: string; at: number; paid: boolean }
   | { type: "break_end"; shiftId: string; breakId: string; at: number }
   | { type: "clock_out"; shiftId: string; at: number }
@@ -48,6 +50,12 @@ export function applyWorkOp(state: ClockState, op: WorkOp): ApplyResult {
   if (op.type === "clock_in") {
     if (active) return active.id === op.shift.id ? { ok: true, state } : fail("Já tens um turno a decorrer.");
     return { ok: true, state: { ...state, active: { ...op.shift, breaks: [] } } };
+  }
+
+  if (op.type === "complete") {
+    if (state.lastCompleted?.id === op.shift.id) return { ok: true, state }; // duplo toque
+    if (op.shift.endedAt <= op.shift.startedAt) return fail("A saída tem de ser depois da entrada.");
+    return { ok: true, state: { ...state, lastCompleted: op.shift } };
   }
 
   if (!active || active.id !== op.shiftId) {
@@ -107,9 +115,28 @@ const isTime = (v: unknown): v is number => typeof v === "number" && Number.isIn
 const isInt = (v: unknown, min: number, max: number): v is number => typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
 const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
+function parseBreaks(value: unknown): ShiftBreak[] | null {
+  if (!Array.isArray(value) || value.length > 10) return null;
+  const breaks: ShiftBreak[] = [];
+  for (const b of value) {
+    if (!isRecord(b) || !isUuid(b.id) || !isTime(b.startedAt) || !isTime(b.endedAt) || typeof b.paid !== "boolean") return null;
+    if (b.endedAt < b.startedAt) return null;
+    breaks.push({ id: b.id, startedAt: b.startedAt, endedAt: b.endedAt, paid: b.paid });
+  }
+  return breaks;
+}
+
 export function parseWorkOp(input: unknown): WorkOp | null {
   if (!isRecord(input)) return null;
   switch (input.type) {
+    case "complete": {
+      const base = parseWorkOp({ type: "clock_in", shift: input.shift });
+      const s = isRecord(input.shift) ? input.shift : null;
+      const breaks = parseBreaks(s?.breaks);
+      if (!base || base.type !== "clock_in" || !s || !isTime(s.endedAt) || !breaks) return null;
+      if (s.endedAt <= base.shift.startedAt) return null;
+      return { type: "complete", shift: { ...base.shift, endedAt: s.endedAt, breaks } };
+    }
     case "clock_in": {
       const s = input.shift;
       if (!isRecord(s)) return null;
@@ -158,6 +185,3 @@ export function parseWorkOp(input: unknown): WorkOp | null {
 export function clampToNow(at: number, serverNow: number): number {
   return Math.min(at, serverNow);
 }
-
-/** Tolerância para considerar um turno planeado "o de agora" ao picar entrada. */
-export const SCHEDULE_MATCH_MS = 60 * MINUTE_MS;

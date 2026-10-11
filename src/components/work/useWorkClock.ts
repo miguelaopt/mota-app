@@ -21,6 +21,8 @@ export interface WorkClock extends ClockState {
   dismissedCompletedId: string | null;
   /** Operações à espera de rede. */
   pendingCount: number;
+  /** Turnos do calendário já marcados como feitos neste telemóvel (podem ainda não estar no servidor). */
+  localDoneIds: string[];
   error: string | null;
   dispatch: (op: WorkOp) => string | null;
   dismissCompleted: () => void;
@@ -82,6 +84,12 @@ export function useWorkClock({
     lastCompleted: local?.lastCompleted ?? null,
     dismissedCompletedId: local?.dismissedCompletedId ?? null,
     pendingCount,
+    localDoneIds: local
+      ? [
+          ...(local.lastCompleted ? [local.lastCompleted.id] : []),
+          ...local.ops.flatMap((op) => (op.type === "complete" ? [op.shift.id] : [])),
+        ]
+      : [],
     error: local?.error ?? null,
     dispatch: store.dispatch,
     dismissCompleted: store.dismissCompleted,

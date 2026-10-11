@@ -1,31 +1,33 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { MotorcycleIcon, PauseIcon, PlayIcon, SparkIcon } from "@/components/icons";
-import { Notice } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, StatRow } from "@/components/ui/Card";
 import { Field, inputClass } from "@/components/ui/fields";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Sheet } from "@/components/ui/Sheet";
 import { cn } from "@/lib/cn";
-import { formatShiftDay, formatTime, fromLocalInput, toLocalInput } from "@/lib/dates";
+import { formatTime, fromLocalInput, toLocalInput } from "@/lib/dates";
 import { formatEur } from "@/lib/finance/money";
 import { haptic } from "@/lib/haptics";
-import type { ClockShift, CompletedClockShift } from "@/lib/work/clock";
+import type { ClockShift } from "@/lib/work/clock";
 import { formatBp, formatClock, formatHm, formatHoursCeil, formatShortDuration } from "@/lib/work/format";
 import { hoursToGoal, nextMilestone } from "@/lib/work/goal";
-import { estimateAtPlannedEnd, estimatePlannedShift, estimateShift, isUnusualShift } from "@/lib/work/shift";
+import { estimateAtPlannedEnd, estimateShift } from "@/lib/work/shift";
 import { TARGET_LABEL, targetCents, type WorkClientData } from "@/lib/work/view";
-import { buildClockIn, earningsLabel, earningsLabelLower } from "./clockHelpers";
+import { earningsLabel, earningsLabelLower } from "./clockHelpers";
 import { newId, useNow, useWorkClock, type WorkClock as Clock } from "./useWorkClock";
 
-type SheetKind = "start" | "late_start" | "planned_end" | "break" | "clock_out" | "motivation";
+type SheetKind = "start" | "planned_end" | "break" | "clock_out" | "motivation";
 /** `at`: hora a que a folha foi aberta (valor inicial dos campos de hora). */
 type SheetState = { kind: SheetKind; at: number } | null;
 
-/** Relógio de ponto do ecrã Trabalho: entrada, turno em curso, pausas, saída e recompensa. */
+/**
+ * Turno em curso (só existe se tiver sido picada a entrada antes de o modo
+ * calendário substituir o "Picar entrada"): pausas e saída. Sem turno ativo
+ * não mostra nada.
+ */
 export function WorkClock({ data }: { data: WorkClientData }) {
   const clock = useWorkClock({ userId: data.userId, serverActive: data.activeShift, renderedAt: data.renderedAt });
   const [sheet, setSheet] = useState<SheetState>(null);
@@ -35,7 +37,6 @@ export function WorkClock({ data }: { data: WorkClientData }) {
   const openedAt = sheet?.at ?? data.renderedAt;
   const active = clock.active;
   const now = useNow(active != null, data.renderedAt);
-  const showReward = clock.lastCompleted != null && clock.lastCompleted.id !== clock.dismissedCompletedId && !active;
 
   const run = (op: Parameters<Clock["dispatch"]>[0]) => {
     const error = clock.dispatch(op);
@@ -45,27 +46,7 @@ export function WorkClock({ data }: { data: WorkClientData }) {
 
   return (
     <>
-      <SyncStatus clock={clock} />
-
-      {active ? (
-        <ActiveShift data={data} shift={active} now={now} onSheet={open} run={run} />
-      ) : (
-        <IdleCard data={data} onClockIn={() => run(buildClockIn(data, Date.now()))} onLate={() => open("late_start")} />
-      )}
-
-      <Sheet open={kind === "late_start"} onClose={close} title="Picar entrada">
-        {kind === "late_start" && (
-          <TimeForm
-            label="Hora de entrada"
-            hint="Se te esqueceste de picar, indica quando entraste."
-            initial={data.nextShift && data.nextShift.startsAt < openedAt ? data.nextShift.startsAt : openedAt}
-            noFuture
-            submit="Picar entrada"
-            onSubmit={(at) => run(buildClockIn(data, at))}
-            onDone={close}
-          />
-        )}
-      </Sheet>
+      {active && <ActiveShift data={data} shift={active} now={now} onSheet={open} run={run} />}
 
       {active && (
         <>
@@ -139,71 +120,7 @@ export function WorkClock({ data }: { data: WorkClientData }) {
         </>
       )}
 
-      <Sheet open={showReward} onClose={clock.dismissCompleted} title="Turno concluído">
-        {showReward && clock.lastCompleted && <Reward data={data} shift={clock.lastCompleted} onDone={clock.dismissCompleted} />}
-      </Sheet>
     </>
-  );
-}
-
-function SyncStatus({ clock }: { clock: Clock }) {
-  if (!clock.error && clock.pendingCount === 0) return null;
-  return (
-    <div className="mb-3 space-y-2" aria-live="polite">
-      {clock.pendingCount > 0 && (
-        <Notice tone="neutral">
-          Guardado no telemóvel. {clock.pendingCount === 1 ? "1 registo" : `${clock.pendingCount} registos`} à espera de rede para
-          sincronizar.
-        </Notice>
-      )}
-      {clock.error && (
-        <Notice tone="danger" className="flex items-start justify-between gap-3">
-          <span>{clock.error}</span>
-          <button type="button" onClick={clock.clearError} className="shrink-0 font-semibold">
-            OK
-          </button>
-        </Notice>
-      )}
-    </div>
-  );
-}
-
-function IdleCard({ data, onClockIn, onLate }: { data: WorkClientData; onClockIn: () => void; onLate: () => void }) {
-  const next = data.nextShift;
-  const terms = data.settings;
-  const plan = next ? estimatePlannedShift(next, terms) : null;
-
-  return (
-    <Card className="p-5">
-      {next && plan ? (
-        <>
-          <p className="text-sm text-muted">Próximo turno</p>
-          <p className="text-2xl font-bold leading-tight tabular-nums">
-            {formatShiftDay(next.startsAt, new Date(data.renderedAt))} · {formatTime(next.startsAt)}–{formatTime(next.endsAt)}
-          </p>
-          <p className="mt-1 text-sm text-muted tabular-nums">
-            {formatHm(plan.paidMs)} pagas · {formatEur(plan.earnedCents)} {earningsLabelLower(terms.payMode)}
-          </p>
-          <p className="mt-3 text-lg font-semibold text-accent tabular-nums">
-            {formatEur(plan.plannedCents)} planeados para a mota
-          </p>
-        </>
-      ) : (
-        <>
-          <p className="text-sm text-muted">Sem turno planeado</p>
-          <p className="text-2xl font-bold leading-tight tabular-nums">
-            {formatEur(terms.hourlyRateCents)}/h · {formatBp(terms.allocationBp)} para a mota
-          </p>
-          <p className="mt-1 text-sm text-muted">Podes picar a entrada sempre que começares a trabalhar.</p>
-        </>
-      )}
-      <Button size="lg" className="mt-5 w-full" onClick={onClockIn}>
-        <PlayIcon size={20} /> Picar entrada
-      </Button>
-      <button type="button" onClick={onLate} className="mt-3 w-full text-center text-sm font-medium text-accent active:opacity-60">
-        Esqueceste-te de picar? Indica a hora de entrada
-      </button>
-    </Card>
   );
 }
 
@@ -423,64 +340,6 @@ function Motivation({ data, shift, now }: { data: WorkClientData; shift: ClockSh
           </li>
         ))}
       </ul>
-    </div>
-  );
-}
-
-function Reward({ data, shift, onDone }: { data: WorkClientData; shift: CompletedClockShift; onDone: () => void }) {
-  const e = estimateShift(shift, shift.endedAt);
-  const model = data.motorcycle?.model ?? "mota";
-  const goalCents = targetCents(data.goal, shift.target);
-  const missingAfter = Math.max(0, goalCents - data.goal.savedCents - e.plannedCents);
-  const unusual = isUnusualShift(e);
-  const animate = data.settings.animations;
-
-  return (
-    <div className="space-y-4">
-      <div className={cn("rounded-3xl bg-accent-soft p-5 text-center", animate && "reward-pop")}>
-        <p className="font-semibold tabular-nums">Turno concluído · {formatHm(e.paidMs)} pagas</p>
-        <p className="mt-2 text-muted tabular-nums">
-          {formatEur(e.earnedCents)} {earningsLabelLower(shift.payMode)}
-        </p>
-        <p className="mt-1 text-[2rem] font-extrabold leading-tight tracking-tight text-accent tabular-nums">
-          {formatEur(e.plannedCents)}
-        </p>
-        <p className="font-medium">planeados para a {model}</p>
-        {goalCents > 0 && e.plannedCents > 0 && (
-          <p className="mt-3 text-sm text-muted tabular-nums">
-            Se guardares este valor, faltam {formatEur(missingAfter)} para o {TARGET_LABEL[shift.target]}.
-          </p>
-        )}
-      </div>
-
-      <Card className="bg-card-2 py-2">
-        <StatRow label="Duração total" value={formatHm(e.totalMs)} />
-        <StatRow label="Pausas" value={formatHm(e.breakMs)} hint={e.unpaidBreakMs > 0 ? `${formatHm(e.unpaidBreakMs)} não remuneradas` : undefined} />
-        <StatRow label="Duração paga" value={formatHm(e.paidMs)} />
-        <StatRow label="Já guardado (real)" value={formatEur(data.goal.savedCents)} />
-        <StatRow label="Projeção após guardar" value={<span className="text-accent">{formatEur(data.goal.savedCents + e.plannedCents)}</span>} />
-      </Card>
-
-      {unusual && (
-        <Notice>
-          Duração invulgar ({formatHm(e.totalMs)}). Revê o horário: talvez te tenhas esquecido de picar a saída.
-        </Notice>
-      )}
-
-      <p className="px-1 text-sm text-muted">
-        O saldo das contas não muda sozinho. Quando receberes e guardares o dinheiro, confirma a poupança no ecrã Trabalho.
-      </p>
-
-      <div className="grid grid-cols-2 gap-3">
-        <Link
-          href={`/trabalho/turnos/${shift.id}`}
-          onClick={onDone}
-          className="inline-flex h-11 items-center justify-center rounded-xl bg-card-2 px-4 font-semibold active:opacity-70"
-        >
-          Corrigir horário
-        </Link>
-        <Button onClick={onDone}>Feito</Button>
-      </div>
     </div>
   );
 }

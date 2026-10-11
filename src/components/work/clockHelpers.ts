@@ -1,28 +1,31 @@
-import { SCHEDULE_MATCH_MS, type WorkOp } from "@/lib/work/clock";
-import type { PayMode } from "@/lib/work/shift";
-import type { WorkClientData } from "@/lib/work/view";
+import type { WorkOp } from "@/lib/work/clock";
+import { MINUTE_MS, type PayMode } from "@/lib/work/shift";
+import type { CalendarEntry, WorkClientData } from "@/lib/work/view";
 import { newId } from "./useWorkClock";
 
 /**
- * Picar entrada: copia as condições atuais (valor/hora, percentagem, meta) e,
- * se houver um turno planeado para agora, a saída prevista dele.
+ * "Turno feito": regista o turno do calendário com o horário planeado e as
+ * condições atuais (valor/hora, percentagem, meta). O id do turno é o do
+ * calendário, por isso só pode ser registado uma vez. A pausa não paga
+ * prevista fica a meio do turno.
  */
-export function buildClockIn(data: WorkClientData, startedAt: number): WorkOp {
-  const next = data.nextShift;
-  const matches = next != null && startedAt >= next.startsAt - SCHEDULE_MATCH_MS && startedAt < next.endsAt;
+export function buildComplete(data: WorkClientData, entry: CalendarEntry): WorkOp {
+  const unpaidMs = entry.unpaidBreakMinutes * MINUTE_MS;
+  const breakStart = entry.startsAt + Math.round((entry.endsAt - entry.startsAt - unpaidMs) / 2 / MINUTE_MS) * MINUTE_MS;
   return {
-    type: "clock_in",
+    type: "complete",
     shift: {
-      id: newId(),
-      startedAt,
-      plannedEndAt: matches ? next.endsAt : null,
-      scheduledShiftId: matches ? next.id : null,
+      id: entry.id,
+      startedAt: entry.startsAt,
+      endedAt: entry.endsAt,
+      plannedEndAt: entry.endsAt,
+      scheduledShiftId: entry.id,
       motorcycleId: data.motorcycle?.id ?? null,
       payMode: data.settings.payMode,
       hourlyRateCents: data.settings.hourlyRateCents,
       allocationBp: data.settings.allocationBp,
       target: data.settings.target,
-      breaks: [],
+      breaks: unpaidMs > 0 ? [{ id: newId(), startedAt: breakStart, endedAt: breakStart + unpaidMs, paid: false }] : [],
     },
   };
 }
