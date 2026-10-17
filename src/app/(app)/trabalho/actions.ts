@@ -78,16 +78,28 @@ async function applyOnServer(db: Db, op: WorkOp, serverNow: number): Promise<voi
     if (s.startedAt > serverNow + 5 * MINUTE_MS) throw new FormError("Este turno ainda não começou.");
     const problem = validateShiftTimes({ startedAt: s.startedAt, endedAt: s.endedAt, breaks: s.breaks });
     if (problem) throw new FormError(problem);
+    const scheduledId = await exists(db, "scheduled_shifts", s.scheduledShiftId);
     const { data: overlap, error: overlapError } = await db
       .from("shifts")
-      .select("id")
+      .select("id, ended_at, scheduled_shift_id")
       .lt("started_at", iso(s.endedAt))
       .or(`ended_at.is.null,ended_at.gt.${iso(s.startedAt)}`)
       .limit(1);
     if (overlapError) throw new Error(overlapError.message);
-    if (overlap.length > 0) throw new FormError("Já tens um turno registado a essa hora.");
+    if (overlap.length > 0) {
+      const existing = overlap[0];
+      if (!existing.ended_at) throw new FormError("Tens um turno a decorrer a essa hora: pica a saída primeiro.");
+      // O trabalho deste dia já foi registado (ex.: com "Picar entrada"): liga-o ao
+      // calendário em vez de o contar duas vezes.
+      if (scheduledId) {
+        if (!existing.scheduled_shift_id) {
+          check(await db.from("shifts").update({ scheduled_shift_id: scheduledId }).eq("id", existing.id));
+        }
+        check(await db.from("scheduled_shifts").update({ status: "done" }).eq("id", scheduledId));
+      }
+      return;
+    }
 
-    const scheduledId = await exists(db, "scheduled_shifts", s.scheduledShiftId);
     check(
       await db.from("shifts").insert({
         id: s.id,

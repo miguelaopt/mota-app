@@ -80,7 +80,10 @@ export function buildWorkClientData({
     },
     activeShift: active ? toClockShift(active) : null,
     calendar: calendar.map((c) => {
-      const done = byScheduled.get(c.id);
+      // Ligado pelo "Turno feito" ou, para turnos registados de outra forma, pelo horário.
+      const done =
+        byScheduled.get(c.id) ??
+        completed.find((s) => s.scheduledShiftId == null && s.startedAt < c.endsAt && s.endedAt! > c.startsAt);
       return {
         id: c.id,
         startsAt: c.startsAt,

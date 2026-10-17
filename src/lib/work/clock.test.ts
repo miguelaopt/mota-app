@@ -158,6 +158,19 @@ describe("createClockStore", () => {
     expect(server.received).toHaveLength(1);
   });
 
+  it("«Turno feito» recusado pelo servidor não fica dado como feito no telemóvel", async () => {
+    const server = fakeServer();
+    const store = createClockStore({ storage: () => memoryStorage(), send: server.send });
+    store.syncFromServer("u1", null, 1);
+    server.rejectNext("Turno inválido.");
+    const done = { ...shift, endedAt: T0 + 5 * 3600_000 };
+    store.dispatch({ type: "complete", shift: done });
+    expect(store.getState()?.lastCompleted?.id).toBe(SHIFT_ID);
+    await store.flush();
+    expect(store.getState()?.lastCompleted).toBeNull();
+    expect(store.getState()?.error).toMatch(/Turno inválido/);
+  });
+
   it("outro utilizador no mesmo telemóvel começa do zero", () => {
     const storage = memoryStorage();
     const store = createClockStore({ storage: () => storage, send: fakeServer().send });

@@ -160,8 +160,16 @@ export function createClockStore({
             set({ ...state, error: result.error });
             return false;
           } else {
-            // Operação rejeitada: descarta a fila e volta ao estado do servidor.
-            set({ ...state, ops: [], ackAt: 0, error: `${result.error} O estado foi atualizado a partir do servidor.` });
+            // Operação rejeitada: descarta a fila e volta ao estado do servidor,
+            // incluindo um turno dado como terminado só neste telemóvel.
+            const dropped = new Set(state.ops.flatMap((o) => (o.type === "complete" ? [o.shift.id] : o.type === "clock_out" ? [o.shiftId] : [])));
+            set({
+              ...state,
+              ops: [],
+              ackAt: 0,
+              lastCompleted: state.lastCompleted && dropped.has(state.lastCompleted.id) ? null : state.lastCompleted,
+              error: `${result.error} O estado foi atualizado a partir do servidor.`,
+            });
             onResync?.();
             return false;
           }
