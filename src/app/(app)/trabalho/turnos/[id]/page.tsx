@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { requireSession } from "@/lib/auth";
 import { getAccounts } from "@/lib/data/accounts";
 import { getDashboardData } from "@/lib/data/dashboard";
-import { getAttributions, getShift, getShifts } from "@/lib/data/work";
+import { getAttributions, getShift, getShiftsByIds } from "@/lib/data/work";
 import { formatShortDate, formatTime, toLocalInput } from "@/lib/dates";
 import { formatEur } from "@/lib/finance/money";
 import { formatBp, formatHm } from "@/lib/work/format";
@@ -51,7 +51,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ id: stri
   // Diferença entre o planeado (estimativas atuais) e o que foi confirmado.
   let plannedForAttribution = 0;
   if (attribution) {
-    const linked = (await getShifts(supabase)).filter((s) => attribution.shiftIds.includes(s.id) && s.endedAt != null);
+    const linked = (await getShiftsByIds(supabase, attribution.shiftIds)).filter((s) => s.endedAt != null);
     plannedForAttribution = linked.reduce((sum, s) => sum + estimateShift(s, s.endedAt!).plannedCents, 0);
   }
   const accountName = attribution ? (accounts.find((a) => a.id === attribution.accountId)?.name ?? "conta") : null;

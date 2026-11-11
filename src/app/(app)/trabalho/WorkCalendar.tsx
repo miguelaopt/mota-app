@@ -190,9 +190,15 @@ function DaySheet({
               {done ? "feito" : "para a mota"}
             </p>
             {done ? (
-              <Link href={`/trabalho/turnos/${entry.shiftId ?? entry.id}`} className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-success">
-                <CheckIcon size={16} strokeWidth={3} /> Turno feito · ver resumo
-              </Link>
+              entry.shiftId ? (
+                <Link href={`/trabalho/turnos/${entry.shiftId}`} className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-success">
+                  <CheckIcon size={16} strokeWidth={3} /> Turno feito · ver resumo
+                </Link>
+              ) : (
+                <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-success">
+                  <CheckIcon size={16} strokeWidth={3} /> Turno feito · a sincronizar…
+                </p>
+              )
             ) : (
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {entry.startsAt <= now ? (

@@ -129,6 +129,19 @@ export function createClockStore({
     dispatch(op) {
       load();
       if (!state) return "A app ainda está a carregar. Tenta outra vez.";
+      if (op.type === "complete") {
+        // Duplo toque: o mesmo turno ainda está na fila. Se já foi enviado, envia-se
+        // outra vez: o servidor reconhece o id (não duplica) e, se o turno tiver sido
+        // apagado entretanto, volta a registá-lo.
+        if (state.ops.some((o) => o.type === "complete" && o.shift.id === op.shift.id)) return null;
+        if (op.shift.endedAt <= op.shift.startedAt) {
+          set({ ...state, error: "A saída tem de ser depois da entrada." });
+          return state.error;
+        }
+        set({ ...state, lastCompleted: op.shift, ops: [...state.ops, op], error: null });
+        void store.flush();
+        return null;
+      }
       const result = applyWorkOp({ active: state.active, lastCompleted: state.lastCompleted }, op);
       if (!result.ok) {
         set({ ...state, error: result.error });
@@ -202,4 +215,16 @@ export function createClockStore({
   };
 
   return store;
+}
+
+/**
+ * Turnos dados como feitos neste telemóvel que a página ainda pode não mostrar:
+ * os que estão na fila e o último registado, mas este só enquanto a página for
+ * anterior à confirmação do servidor. Depois disso manda o servidor (por
+ * exemplo, um turno apagado deixa de aparecer como feito).
+ */
+export function localDoneIds(state: Pick<ClockStoreState, "ops" | "lastCompleted" | "ackAt">, renderedAt: number): string[] {
+  const queued = state.ops.flatMap((op) => (op.type === "complete" ? [op.shift.id] : []));
+  const lastIsNewer = state.lastCompleted != null && renderedAt < state.ackAt && !queued.includes(state.lastCompleted.id);
+  return lastIsNewer ? [...queued, state.lastCompleted!.id] : queued;
 }

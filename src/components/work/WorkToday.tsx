@@ -13,7 +13,7 @@ import { formatShiftDay, formatTime } from "@/lib/dates";
 import { formatEur } from "@/lib/finance/money";
 import { haptic } from "@/lib/haptics";
 import type { CompletedClockShift } from "@/lib/work/clock";
-import { formatHm } from "@/lib/work/format";
+import { formatCountdown, formatHm } from "@/lib/work/format";
 import { estimatePlannedShift, estimateShift, isUnusualShift } from "@/lib/work/shift";
 import { todayView } from "@/lib/work/today";
 import { TARGET_LABEL, targetCents, type CalendarEntry, type WorkClientData } from "@/lib/work/view";
@@ -80,6 +80,17 @@ export function WorkToday({ data, onHome = false }: { data: WorkClientData; onHo
             <p className="text-2xl font-bold tabular-nums">{formatEur(view.doneToday.cents)} planeados para a mota</p>
             <p className="text-sm text-muted">O saldo só muda quando guardares o dinheiro e confirmares a poupança.</p>
           </>
+        ) : view.laterToday ? (
+          <>
+            <p className="text-sm font-medium text-muted">{data.settings.jobName} · hoje</p>
+            <p className="text-2xl font-bold leading-tight tabular-nums">
+              {formatTime(view.laterToday.startsAt)}–{formatTime(view.laterToday.endsAt)}
+            </p>
+            <p className="mt-1 text-sm text-muted tabular-nums">
+              começa daqui a <span className="font-semibold text-accent">{formatCountdown(view.laterToday.startsAt - now)}</span> ·{" "}
+              {formatEur(plan(data, view.laterToday).plannedCents)} para a mota
+            </p>
+          </>
         ) : (
           <>
             <p className="text-sm text-muted">{data.settings.jobName}</p>
@@ -92,7 +103,7 @@ export function WorkToday({ data, onHome = false }: { data: WorkClientData; onHo
           </>
         )}
 
-        {view.next && (
+        {view.next && view.next !== view.laterToday && (
           <p className={cn("text-sm text-muted tabular-nums", (view.main || view.doneToday) && "mt-3 border-t border-sep pt-3")}>
             Próximo turno:{" "}
             <span className="font-medium text-fg first-letter:uppercase">

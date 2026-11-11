@@ -155,6 +155,18 @@ export async function getShifts(db: Db): Promise<ShiftRecord[]> {
   return hydrate(db, rows);
 }
 
+/** Só os turnos indicados (ex.: os de uma confirmação), sem ler o histórico todo. */
+export async function getShiftsByIds(db: Db, ids: string[]): Promise<ShiftRecord[]> {
+  if (ids.length === 0) return [];
+  const rows: ShiftRow[] = [];
+  for (let i = 0; i < ids.length; i += 200) {
+    const { data, error } = await db.from("shifts").select(SHIFT_COLUMNS).in("id", ids.slice(i, i + 200));
+    if (error) throw new Error(error.message);
+    rows.push(...data);
+  }
+  return hydrate(db, rows);
+}
+
 export async function getShift(db: Db, id: string): Promise<ShiftRecord | null> {
   const { data, error } = await db.from("shifts").select(SHIFT_COLUMNS).eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);

@@ -1,6 +1,6 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
-import { unstable_rethrow } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { fail, ok, type ActionResult } from "./action-result";
 import { requireSession } from "./auth";
 import { FormError } from "./forms";
@@ -12,7 +12,10 @@ type Session = Awaited<ReturnType<typeof requireSession>>;
  * erros de validação em mensagens e atualiza todos os ecrãs, já que qualquer
  * alteração pode mexer nos totais do Início.
  */
-export async function runAction(fn: (session: Session) => Promise<void>): Promise<ActionResult> {
+export async function runAction(
+  fn: (session: Session) => Promise<void>,
+  { redirectTo }: { redirectTo?: string } = {},
+): Promise<ActionResult> {
   try {
     const session = await requireSession();
     await fn(session);
@@ -23,6 +26,9 @@ export async function runAction(fn: (session: Session) => Promise<void>): Promis
     return fail("Não foi possível guardar. Verifica a ligação e tenta outra vez.");
   }
   revalidatePath("/", "layout");
+  // Responde já com a página de destino (uma só ida ao servidor, em vez de
+  // desenhar a página atual e depois navegar).
+  if (redirectTo) redirect(redirectTo);
   return ok();
 }
 

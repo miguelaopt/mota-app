@@ -97,3 +97,33 @@ describe("operação «Turno feito»", () => {
     expect(parseWorkOp({ type: "complete", shift: { ...shift, breaks: [{ id: "x" }] } })).toBeNull();
   });
 });
+
+describe("turno mais logo, no mesmo dia", () => {
+  it("um turno de hoje que ainda não começou aparece como «mais logo», não como «sem turno»", () => {
+    // 11 nov. 2026, 13:09 em Lisboa (UTC no inverno); turno às 18:30.
+    const now = at("2026-11-11T13:09:00Z");
+    const today = entry("c0000000-0000-4000-8000-000000000001", "2026-11-11T18:30:00Z");
+    const tomorrow = entry("c0000000-0000-4000-8000-000000000002", "2026-11-12T18:30:00Z");
+    const v = todayView({ calendar: [tomorrow, today], settings }, [], now);
+    expect(v.main).toBeNull();
+    expect(v.laterToday?.id).toBe(today.id);
+    expect(v.next?.id).toBe(today.id);
+  });
+
+  it("sem turno hoje, não há «mais logo»", () => {
+    const now = at("2026-11-11T13:09:00Z");
+    const v = todayView({ calendar: [entry("c0000000-0000-4000-8000-000000000002", "2026-11-12T18:30:00Z")], settings }, [], now);
+    expect(v.laterToday).toBeNull();
+  });
+});
+
+describe("formatCountdown", () => {
+  it("formata o tempo até ao turno", async () => {
+    const { formatCountdown } = await import("./format");
+    expect(formatCountdown(5 * H + 21 * 60_000)).toBe("5 h 21 min");
+    expect(formatCountdown(21 * 60_000)).toBe("21 min");
+    expect(formatCountdown(2 * H)).toBe("2 h");
+    expect(formatCountdown(20_000)).toBe("1 min");
+    expect(formatCountdown(0)).toBe("agora");
+  });
+});

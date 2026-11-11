@@ -424,6 +424,8 @@ export async function deleteShiftAction(_prev: ActionResult, form: FormData): Pr
 // ---------------------------------------------------------------------------
 
 export async function confirmSavingsAction(_prev: ActionResult, form: FormData): Promise<ActionResult> {
+  // Só destinos conhecidos (nunca um URL vindo do formulário tal como está).
+  const redirectTo = form.get("redirect_to") === "/trabalho" ? "/trabalho" : undefined;
   return runAction(async ({ supabase }) => {
     const id = getId(form, "attribution_id");
     const accountId = getId(form, "account_id");
@@ -455,7 +457,7 @@ export async function confirmSavingsAction(_prev: ActionResult, form: FormData):
     // Mensagens das validações da função (raise exception) vêm com o código P0001.
     if (error?.code === "P0001") throw new FormError(error.message);
     if (error) throw new Error(error.message);
-  });
+  }, { redirectTo });
 }
 
 /** Anula uma confirmação: os turnos voltam a "por confirmar"; o saldo da conta não muda. */

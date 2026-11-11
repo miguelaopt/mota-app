@@ -18,6 +18,8 @@ export function todayView(data: Pick<WorkClientData, "calendar" | "settings">, l
   const next = data.calendar.filter((e) => !isDone(e) && e.startsAt > now).sort((a, b) => a.startsAt - b.startsAt)[0] ?? null;
   return {
     main: toMark[0] ?? null,
+    /** Turno marcado para hoje que ainda não começou (mostra a contagem decrescente). */
+    laterToday: next && dayKey(new Date(next.startsAt)) === today ? next : null,
     others: toMark.slice(1),
     doneToday: done.length
       ? { cents: done.reduce((sum, e) => sum + (e.doneCents ?? estimatePlannedShift(e, data.settings).plannedCents), 0) }
