@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Card, ListGroup, Section } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { undoKey } from "@/components/undo/keys";
+import { Removable } from "@/components/undo/UndoProvider";
 import { requireSession } from "@/lib/auth";
 import { cn } from "@/lib/cn";
 import { getAccounts } from "@/lib/data/accounts";
@@ -11,10 +13,12 @@ import { getSnapshots } from "@/lib/data/snapshots";
 import { getAttributions, getShifts, getWorkSettings } from "@/lib/data/work";
 import { dayKey, formatDayHeading, formatShortDate, formatTime } from "@/lib/dates";
 import { summarizeAccounts } from "@/lib/finance/accounts";
+import { totalSeries } from "@/lib/finance/history";
 import { formatEur } from "@/lib/finance/money";
 import { formatHm } from "@/lib/work/format";
 import { estimateShift } from "@/lib/work/shift";
 import { DeleteEntryButton } from "./DeleteEntryButton";
+import { EvolutionChartLazy } from "./EvolutionChartLazy";
 
 export const metadata: Metadata = { title: "Histórico" };
 
@@ -30,20 +34,34 @@ type Filter = (typeof FILTERS)[number]["key"];
 
 interface HistoryEvent {
   key: string;
+  /** Chave para esconder a linha enquanto espera pelo "Anular". */
+  undo?: string;
   at: Date;
   group: Exclude<Filter, "tudo">;
   node: ReactNode;
 }
 
-function Row({ title, subtitle, value, detail, action }: { title: ReactNode; subtitle: ReactNode; value: ReactNode; detail?: ReactNode; action?: ReactNode }) {
+function Row({
+  title,
+  subtitle,
+  value,
+  detail,
+  action,
+}: {
+  title: ReactNode;
+  subtitle: ReactNode;
+  value: ReactNode;
+  detail?: ReactNode;
+  action?: ReactNode;
+}) {
   return (
-    <div className={cn("flex items-center gap-3 py-3 pl-4", action ? "pr-2" : "pr-4")}>
+    <div className={cn("flex min-h-14 items-center gap-3 py-3 pl-4", action ? "pr-1.5" : "pr-4")}>
       <div className="min-w-0 flex-1">
-        <p className="truncate font-medium">{title}</p>
-        <p className="text-sm text-muted">{subtitle}</p>
+        <p className="truncate text-[0.9375rem] font-semibold">{title}</p>
+        <p className="text-xs text-muted">{subtitle}</p>
       </div>
       <div className="text-right tabular-nums">
-        <p className="font-semibold">{value}</p>
+        <p className="display text-[1.25rem] leading-[1.1]">{value}</p>
         {detail}
       </div>
       {action}
@@ -78,6 +96,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
     const fromWork = workBySnapshot.get(snapshot.id);
     events.push({
       key: `s-${snapshot.id}`,
+      undo: undoKey.snapshot(snapshot.id),
       at: snapshot.recordedAt,
       group: "contas",
       node: (
@@ -94,7 +113,9 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
             delta == null ? (
               <p className="text-xs text-muted">primeiro registo</p>
             ) : (
-              <p className={cn("text-xs font-medium", delta > 0 && "text-success", delta < 0 && "text-danger", delta === 0 && "text-muted")}>
+              <p
+                className={cn("text-xs font-medium", delta > 0 && "text-success", delta < 0 && "text-danger", delta === 0 && "text-muted")}
+              >
                 {formatEur(delta, { signed: true })}
               </p>
             )
@@ -175,6 +196,8 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
   const filtered = events.filter((e) => filter === "tudo" || e.group === filter).sort((a, b) => b.at.getTime() - a.at.getTime());
   const recent = filtered.slice(0, MAX_ENTRIES);
 
+  const evolution = totalSeries(snapshots).map((p) => ({ t: p.at.getTime(), v: p.totalCents }));
+
   const days: Array<{ key: string; items: HistoryEvent[] }> = [];
   for (const event of recent) {
     const key = dayKey(event.at);
@@ -187,26 +210,33 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
     <>
       <PageHeader title="Histórico" />
 
-      <Card>
-        <p className="text-sm text-muted">Conta para a mota hoje</p>
-        <p className="mt-0.5 text-3xl font-bold tracking-tight tabular-nums">{formatEur(summary.totalCountedCents)}</p>
-        <p className="mt-1 text-sm text-muted">
+      <Card className="p-[1.125rem]">
+        <p className="eyebrow">Conta para a mota hoje</p>
+        <p className="display mt-1 text-[clamp(2.25rem,12.5vw,3.125rem)] leading-[0.95]">{formatEur(summary.totalCountedCents)}</p>
+        <p className="mt-1 text-[0.8125rem] text-muted">
           {snapshots.length === 0
             ? "Ainda sem registos."
             : `${snapshots.length} ${snapshots.length === 1 ? "atualização" : "atualizações"} desde ${formatShortDate(snapshots[0].recordedAt, now)}`}
         </p>
+        {snapshots.length > 0 && (
+          <div className="mt-4 border-t border-sep pt-3">
+            <EvolutionChartLazy points={evolution} now={now.getTime()} />
+          </div>
+        )}
       </Card>
 
       {workSettings && (
-        <nav aria-label="Filtrar histórico" className="mt-4 flex gap-2 overflow-x-auto">
+        <nav aria-label="Filtrar histórico" className="-mx-4 mt-5 flex gap-2 overflow-x-auto px-4">
           {FILTERS.map((x) => (
             <Link
               key={x.key}
               href={x.key === "tudo" ? "/historico" : `/historico?f=${x.key}`}
               aria-current={x.key === filter ? "page" : undefined}
               className={cn(
-                "shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium",
-                x.key === filter ? "bg-accent text-accent-fg" : "bg-card text-muted active:opacity-70",
+                "flex min-h-9 shrink-0 items-center rounded-full border px-3.5 text-sm font-medium",
+                x.key === filter
+                  ? "border-accent bg-accent text-accent-fg"
+                  : "border-glass-border bg-white/[0.05] text-muted active:opacity-70",
               )}
             >
               {x.label}
@@ -236,9 +266,15 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
       {days.map((day) => (
         <Section key={day.key} title={formatDayHeading(day.key, now)}>
           <ListGroup>
-            {day.items.map((event) => (
-              <div key={event.key}>{event.node}</div>
-            ))}
+            {day.items.map((event) =>
+              event.undo ? (
+                <Removable key={event.key} id={event.undo}>
+                  <div>{event.node}</div>
+                </Removable>
+              ) : (
+                <div key={event.key}>{event.node}</div>
+              ),
+            )}
           </ListGroup>
         </Section>
       ))}

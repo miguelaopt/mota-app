@@ -159,7 +159,7 @@ export function ReceivePaymentForm({
               onClick={() => setAlready(option.value)}
               className={cn(
                 "min-h-11 rounded-[10px] px-2 text-sm transition-colors",
-                already === option.value ? "bg-accent font-semibold text-accent-fg" : "font-medium text-muted",
+                already === option.value ? "bg-white/[0.12] font-semibold text-fg shadow-[inset_0_1px_0_rgb(255_255_255/0.08)]" : "font-medium text-muted",
               )}
             >
               {option.label}

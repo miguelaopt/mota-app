@@ -4,12 +4,14 @@ import { useOptimistic, useState, useTransition } from "react";
 import { CheckIcon, ChevronRightIcon, ExternalLinkIcon, PlusIcon } from "@/components/icons";
 import { PhotoUpload } from "@/components/PhotoUpload";
 import { Badge } from "@/components/ui/Badge";
-import { buttonClass } from "@/components/ui/Button";
+import { Button, buttonClass } from "@/components/ui/Button";
 import { ListGroup, Section } from "@/components/ui/Card";
 import { Field, FormError, MoneyInput, Segmented, Select, TextArea, TextInput } from "@/components/ui/fields";
 import { Sheet } from "@/components/ui/Sheet";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { useFormAction } from "@/components/ui/useFormAction";
+import { undoKey } from "@/components/undo/keys";
+import { formRunner, useUndo } from "@/components/undo/UndoProvider";
 import { cn } from "@/lib/cn";
 import { GEAR_CATEGORIES, type GearCategory, type GearStatus, type ItemPriority } from "@/lib/finance/goal";
 import { formatEur, type Cents } from "@/lib/finance/money";
@@ -51,11 +53,13 @@ const STATUS_OPTIONS = [
 export function GearList({ items, userId }: { items: GearRow[]; userId: string }) {
   const [filter, setFilter] = useState<Filter>("to_buy");
   const [editing, setEditing] = useState<GearRow | "new" | null>(null);
+  const { hidden, remove } = useUndo();
   const [optimisticItems, setOptimisticStatus] = useOptimistic(items, (current, change: { id: string; status: GearStatus }) =>
     current.map((item) => (item.id === change.id ? { ...item, status: change.status } : item)),
   );
 
   const visible = optimisticItems
+    .filter((item) => !hidden.has(undoKey.gear(item.id)))
     .filter((item) => filter === "all" || item.status === filter)
     .sort((a, b) => {
       if (a.status !== b.status) return a.status === "to_buy" ? -1 : 1;
@@ -64,6 +68,10 @@ export function GearList({ items, userId }: { items: GearRow[]; userId: string }
     });
 
   const close = () => setEditing(null);
+  const deleteItem = (item: GearRow) => {
+    close();
+    remove({ label: `"${item.name}" apagado`, keys: [undoKey.gear(item.id)], run: formRunner(deleteGearItemAction, { id: item.id }) });
+  };
 
   return (
     <>
@@ -72,7 +80,7 @@ export function GearList({ items, userId }: { items: GearRow[]; userId: string }
         <ListGroup className="mt-3">
           {visible.length === 0 && (
             <p className="px-4 py-6 text-center text-sm text-muted">
-              {filter === "bought" ? "Ainda não compraste nada." : "Nada por comprar. 🎉"}
+              {filter === "bought" ? "Ainda não compraste nada." : "Nada por comprar."}
             </p>
           )}
           {visible.map((item) => (
@@ -81,44 +89,65 @@ export function GearList({ items, userId }: { items: GearRow[]; userId: string }
               <button
                 type="button"
                 onClick={() => setEditing(item)}
-                className="flex min-w-0 flex-1 items-center gap-3 py-3 pr-4 text-left outline-none focus-visible:bg-card-2 active:opacity-70"
+                className="flex min-h-16 min-w-0 flex-1 items-center gap-3 py-3 pr-3.5 text-left outline-none focus-visible:bg-card-2 active:opacity-70"
               >
+                {item.photoUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.photoUrl}
+                    alt=""
+                    loading="lazy"
+                    className={cn(
+                      "h-11 w-11 shrink-0 rounded-xl border border-white/10 object-cover",
+                      item.status === "bought" && "opacity-50",
+                    )}
+                  />
+                )}
                 <div className="min-w-0 flex-1">
-                  <p className={cn("truncate font-medium", item.status === "bought" && "text-muted line-through decoration-1")}>{item.name}</p>
+                  <p
+                    className={cn(
+                      "truncate text-[0.9375rem] font-semibold",
+                      item.status === "bought" && "text-muted line-through decoration-1",
+                    )}
+                  >
+                    {item.name}
+                  </p>
                   {item.status === "bought" ? (
-                    <p className="mt-0.5 text-sm text-muted">
+                    <p className="mt-0.5 text-xs text-muted">
                       {GEAR_CATEGORY_LABEL[item.category]}
                       {item.purchasedLabel && ` · ${item.purchasedLabel}`}
                     </p>
                   ) : (
-                    <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm text-muted">
+                    <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted">
                       <span>{GEAR_CATEGORY_LABEL[item.category]}</span>
                       <Badge tone={item.priority === "essential" ? "accent" : "neutral"}>{PRIORITY_LABEL[item.priority]}</Badge>
                     </p>
                   )}
                 </div>
                 {item.priceCents > 0 ? (
-                  <span className={cn("font-semibold tabular-nums", item.status === "bought" && "text-muted")}>{formatEur(item.priceCents)}</span>
+                  <span className={cn("display text-[1.25rem]", item.status === "bought" && "text-muted")}>
+                    {formatEur(item.priceCents)}
+                  </span>
                 ) : (
                   <Badge tone="warning">Sem preço</Badge>
                 )}
-                <ChevronRightIcon size={18} className="shrink-0 text-muted" />
+                <ChevronRightIcon size={16} className="shrink-0 text-faint" />
               </button>
             </div>
           ))}
           <button
             type="button"
             onClick={() => setEditing("new")}
-            className="flex w-full items-center gap-2 px-4 py-3.5 font-medium text-accent outline-none focus-visible:bg-card-2 active:bg-card-2"
+            className="flex min-h-14 w-full items-center gap-2 px-4 py-3.5 text-[0.9375rem] font-semibold text-accent outline-none focus-visible:bg-card-2 active:bg-card-2"
           >
-            <PlusIcon size={20} /> Adicionar item
+            <PlusIcon size={18} /> Adicionar item
           </button>
         </ListGroup>
       </Section>
 
       <Sheet open={editing !== null} onClose={close} title={editing === "new" ? "Novo item" : "Editar item"}>
         {editing === "new" && <GearForm onDone={close} />}
-        {editing && editing !== "new" && <GearForm item={editing} userId={userId} onDone={close} />}
+        {editing && editing !== "new" && <GearForm item={editing} userId={userId} onDone={close} onDelete={() => deleteItem(editing)} />}
       </Sheet>
     </>
   );
@@ -148,7 +177,7 @@ function ToggleBought({ item, onToggle }: { item: GearRow; onToggle: (change: { 
       <span
         className={cn(
           "flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors",
-          bought ? "border-success bg-success text-white" : "border-track",
+          bought ? "border-accent bg-accent text-accent-fg" : "border-white/20",
         )}
       >
         {bought && <CheckIcon size={16} strokeWidth={3} />}
@@ -157,14 +186,12 @@ function ToggleBought({ item, onToggle }: { item: GearRow; onToggle: (change: { 
   );
 }
 
-function GearForm({ item, userId, onDone }: { item?: GearRow; userId?: string; onDone: () => void }) {
+function GearForm({ item, userId, onDone, onDelete }: { item?: GearRow; userId?: string; onDone: () => void; onDelete?: () => void }) {
   const { error, pending, formProps } = useFormAction(saveGearItemAction, onDone);
 
   return (
     <div className="space-y-4">
-      {item && userId && (
-        <PhotoUpload userId={userId} target="gear" targetId={item.id} url={item.photoUrl} alt={item.name} />
-      )}
+      {item && userId && <PhotoUpload userId={userId} target="gear" targetId={item.id} url={item.photoUrl} alt={item.name} />}
       <form {...formProps} className="space-y-4">
         {item && <input type="hidden" name="id" value={item.id} />}
         <Field label="Nome" htmlFor="name">
@@ -211,20 +238,11 @@ function GearForm({ item, userId, onDone }: { item?: GearRow; userId?: string; o
           {item ? "Guardar" : "Adicionar item"}
         </SubmitButton>
       </form>
-      {item && <DeleteGearButton id={item.id} onDone={onDone} />}
+      {onDelete && (
+        <Button variant="danger" className="w-full" onClick={onDelete}>
+          Apagar item
+        </Button>
+      )}
     </div>
-  );
-}
-
-function DeleteGearButton({ id, onDone }: { id: string; onDone: () => void }) {
-  const { error, pending, formProps } = useFormAction(deleteGearItemAction, onDone, { confirmMessage: "Apagar este item?" });
-  return (
-    <form {...formProps}>
-      <input type="hidden" name="id" value={id} />
-      <FormError error={error} />
-      <SubmitButton pending={pending} variant="danger" className="w-full" pendingText="A apagar…">
-        Apagar item
-      </SubmitButton>
-    </form>
   );
 }

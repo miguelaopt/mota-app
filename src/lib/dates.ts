@@ -141,3 +141,12 @@ export function formatShiftDay(value: Date | number, now: Date = new Date()): st
   if (days === -1) return "Ontem";
   return weekdayShort.format(date);
 }
+
+const weekdayOnly = fmt({ weekday: "short" });
+const dayOnly = fmt({ day: "numeric" });
+
+/** Para o mosaico de dia: { weekday: "QUA", day: "11" }. */
+export function dayTile(value: Date | number): { weekday: string; day: string } {
+  const date = toDate(value);
+  return { weekday: weekdayOnly.format(date).replace(".", "").slice(0, 3).toUpperCase(), day: dayOnly.format(date) };
+}

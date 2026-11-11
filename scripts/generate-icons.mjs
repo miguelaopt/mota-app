@@ -51,6 +51,11 @@ await render(maskable, 512).toFile(out("icons/maskable-512.png"));
 
 // Ilustração usada no Início quando ainda não há foto da mota.
 await mkdir(out("illustrations"), { recursive: true });
-await sharp(Buffer.from(bikeSvg), { density: 192 }).resize(1200, 760).webp({ quality: 88 }).toFile(out("illustrations/z400.webp"));
+// Recortada à volta da mota (com folga para a sombra), para o ecrã a poder enquadrar.
+await sharp(Buffer.from(bikeSvg), { density: 192 })
+  .resize(1200, 760)
+  .extract({ left: 140, top: 200, width: 924, height: 540 })
+  .webp({ quality: 88 })
+  .toFile(out("illustrations/z400.webp"));
 
 console.log("Ícones e ilustração gerados em public/");

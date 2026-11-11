@@ -37,9 +37,14 @@ function Suffixed({ suffix, children }: { suffix: string; children: ReactNode })
 /** Valor em euros, com teclado numérico no iPhone. */
 export function MoneyInput({
   defaultCents,
+  defaultText,
   className,
   ...props
-}: Omit<InputHTMLAttributes<HTMLInputElement>, "defaultValue" | "type"> & { defaultCents?: Cents | null }) {
+}: Omit<InputHTMLAttributes<HTMLInputElement>, "defaultValue" | "type"> & {
+  defaultCents?: Cents | null;
+  /** Texto já escrito (ex.: para o repor depois de um erro). */
+  defaultText?: string;
+}) {
   return (
     <Suffixed suffix="€">
       <input
@@ -47,7 +52,7 @@ export function MoneyInput({
         inputMode="decimal"
         autoComplete="off"
         placeholder="0,00"
-        defaultValue={props.value === undefined ? centsToInput(defaultCents) : undefined}
+        defaultValue={props.value === undefined ? (defaultText ?? centsToInput(defaultCents)) : undefined}
         className={cn(inputClass, "pr-9 tabular-nums", className)}
         {...props}
       />
@@ -120,7 +125,7 @@ export function Segmented<T extends string>({
             onChange={onChange ? () => onChange(option.value) : undefined}
             className="peer sr-only"
           />
-          <span className="flex min-h-10 cursor-pointer items-center justify-center rounded-[10px] px-2 py-2 text-center text-sm font-medium text-muted transition-colors peer-checked:bg-accent peer-checked:font-semibold peer-checked:text-accent-fg peer-focus-visible:ring-2 peer-focus-visible:ring-accent">
+          <span className="flex min-h-10 cursor-pointer items-center justify-center rounded-[10px] px-2 py-2 text-center text-sm font-medium text-muted transition-colors peer-checked:bg-white/[0.12] peer-checked:font-semibold peer-checked:text-fg peer-checked:shadow-[inset_0_1px_0_rgb(255_255_255/0.08)] peer-focus-visible:ring-2 peer-focus-visible:ring-accent">
             {option.label}
           </span>
         </label>

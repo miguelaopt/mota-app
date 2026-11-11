@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckIcon } from "@/components/icons";
 import { useState } from "react";
 import { Field, FormError, MoneyInput } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -21,7 +22,15 @@ export function SettingsForm({ monthlyGoalCents }: { monthlyGoalCents: Cents }) 
         <MoneyInput id="monthly_goal" name="monthly_goal" defaultCents={monthlyGoalCents} />
       </Field>
       <FormError error={error} />
-      <SubmitButton pending={pending} className="w-full">{saved ? "Guardado ✓" : "Guardar"}</SubmitButton>
+      <SubmitButton pending={pending} className="w-full">
+        {saved ? (
+          <>
+            <CheckIcon size={18} strokeWidth={2.6} /> Guardado
+          </>
+        ) : (
+          "Guardar"
+        )}
+      </SubmitButton>
     </form>
   );
 }

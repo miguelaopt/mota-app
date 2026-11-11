@@ -9,10 +9,12 @@ import { Field, FormError, Select, TextInput } from "@/components/ui/fields";
 import { Sheet } from "@/components/ui/Sheet";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { useFormAction } from "@/components/ui/useFormAction";
+import { undoKey } from "@/components/undo/keys";
+import { formRunner, useUndo } from "@/components/undo/UndoProvider";
 import { buildComplete } from "@/components/work/clockHelpers";
 import { useNow, useWorkClock } from "@/components/work/useWorkClock";
 import { cn } from "@/lib/cn";
-import { dayKey, formatDayHeading, formatTime, toLocalInput } from "@/lib/dates";
+import { dayKey, formatDayHeading, formatShortDate, formatTime, toLocalInput } from "@/lib/dates";
 import { formatEur } from "@/lib/finance/money";
 import { haptic } from "@/lib/haptics";
 import { formatHm } from "@/lib/work/format";
@@ -22,7 +24,20 @@ import type { CalendarEntry, WorkClientData } from "@/lib/work/view";
 import { deleteScheduledShiftAction, saveScheduledShiftAction } from "./actions";
 
 const WEEKDAYS = ["S", "T", "Q", "Q", "S", "S", "D"];
-const MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+const MONTHS = [
+  "janeiro",
+  "fevereiro",
+  "março",
+  "abril",
+  "maio",
+  "junho",
+  "julho",
+  "agosto",
+  "setembro",
+  "outubro",
+  "novembro",
+  "dezembro",
+];
 
 /** "2026-10" ± n meses. */
 function shiftMonth(month: string, delta: number): string {
@@ -38,11 +53,22 @@ export function WorkCalendar({ data }: { data: WorkClientData }) {
   const today = dayKey(new Date(now));
   const [month, setMonth] = useState(today.slice(0, 7));
   const [selected, setSelected] = useState<string | null>(null);
+  const { hidden, remove } = useUndo();
   const localDone = new Set(clock.localDoneIds);
   const isDone = (e: CalendarEntry) => e.status === "done" || localDone.has(e.id);
+  const calendar = data.calendar.filter((e) => !hidden.has(undoKey.scheduled(e.id)));
+
+  const removeEntry = (entry: CalendarEntry) => {
+    setSelected(null);
+    remove({
+      label: `Turno de ${formatShortDate(new Date(entry.startsAt), new Date(now))} removido`,
+      keys: [undoKey.scheduled(entry.id)],
+      run: formRunner(deleteScheduledShiftAction, { id: entry.id }),
+    });
+  };
 
   const byDay = new Map<string, CalendarEntry[]>();
-  for (const entry of data.calendar) {
+  for (const entry of calendar) {
     const key = dayKey(new Date(entry.startsAt));
     byDay.set(key, [...(byDay.get(key) ?? []), entry]);
   }
@@ -57,23 +83,40 @@ export function WorkCalendar({ data }: { data: WorkClientData }) {
   ];
   const minMonth = shiftMonth(today.slice(0, 7), -1);
   const maxMonth = shiftMonth(today.slice(0, 7), 3);
-  const monthEntries = data.calendar.filter((e) => dayKey(new Date(e.startsAt)).startsWith(month));
-  const monthPlanned = monthEntries.reduce((sum, e) => sum + estimatePlannedShift(e, data.settings).plannedCents, 0);
+  const monthEntries = calendar.filter((e) => dayKey(new Date(e.startsAt)).startsWith(month));
+  const monthPlanned = monthEntries.reduce((sum, e) => sum + (e.doneCents ?? estimatePlannedShift(e, data.settings).plannedCents), 0);
+  const monthDone = monthEntries.filter(isDone).length;
 
   return (
     <>
-      <Card className="p-3">
-        <div className="mb-2 flex items-center justify-between px-1">
+      {/* Resumo do mês mostrado */}
+      <div className="glass mb-3 grid grid-cols-[0.8fr_1fr_1.6fr] rounded-[20px] p-3" aria-live="polite">
+        <div className="px-1.5 py-1">
+          <p className="text-[0.6875rem] text-muted">Feitos</p>
+          <p className="display mt-0.5 text-[1.625rem] text-accent">{monthDone}</p>
+        </div>
+        <div className="border-l border-sep px-3 py-1">
+          <p className="text-[0.6875rem] text-muted">Por fazer</p>
+          <p className="display mt-0.5 text-[1.625rem]">{monthEntries.length - monthDone}</p>
+        </div>
+        <div className="min-w-0 border-l border-sep px-3 py-1">
+          <p className="text-[0.6875rem] text-muted">Mês planeado</p>
+          <p className="display mt-0.5 truncate text-[1.625rem]">{formatEur(monthPlanned)}</p>
+        </div>
+      </div>
+
+      <Card className="px-3 pb-3 pt-2">
+        <div className="mb-1 flex items-center justify-between">
           <button
             type="button"
             aria-label="Mês anterior"
             disabled={month <= minMonth}
             onClick={() => setMonth(shiftMonth(month, -1))}
-            className="rounded-full p-1.5 text-accent active:bg-card-2 disabled:opacity-30"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-accent active:bg-card-2 disabled:opacity-30"
           >
             <ChevronLeftIcon size={22} />
           </button>
-          <p className="font-semibold first-letter:uppercase">
+          <p className="display text-[1.375rem] tracking-[0.02em] first-letter:uppercase">
             {MONTHS[m - 1]} {y}
           </p>
           <button
@@ -81,14 +124,14 @@ export function WorkCalendar({ data }: { data: WorkClientData }) {
             aria-label="Mês seguinte"
             disabled={month >= maxMonth}
             onClick={() => setMonth(shiftMonth(month, 1))}
-            className="rounded-full p-1.5 text-accent active:bg-card-2 disabled:opacity-30"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-accent active:bg-card-2 disabled:opacity-30"
           >
             <ChevronRightIcon size={22} />
           </button>
         </div>
-        <div className="grid grid-cols-7 gap-1 text-center">
+        <div className="grid grid-cols-7 gap-[5px] text-center">
           {WEEKDAYS.map((d, i) => (
-            <span key={i} className="pb-1 text-xs font-medium text-muted" aria-hidden>
+            <span key={i} className="pb-1 text-[0.6875rem] font-semibold text-faint" aria-hidden>
               {d}
             </span>
           ))}
@@ -98,6 +141,7 @@ export function WorkCalendar({ data }: { data: WorkClientData }) {
             const done = entries.length > 0 && entries.every(isDone);
             const pending = entries.some((e) => !isDone(e));
             const past = key < today;
+            const isToday = key === today;
             return (
               <button
                 key={key}
@@ -105,29 +149,44 @@ export function WorkCalendar({ data }: { data: WorkClientData }) {
                 onClick={() => setSelected(key)}
                 aria-label={`${formatDayHeading(key, new Date(data.renderedAt))}${entries.length ? (done ? ", turno feito" : ", turno marcado") : ""}`}
                 className={cn(
-                  "relative flex aspect-square flex-col items-center justify-center rounded-xl text-sm tabular-nums active:opacity-70",
-                  done && "bg-success-soft text-success",
-                  pending && !past && "bg-accent-soft text-accent",
-                  pending && past && "border border-dashed border-accent text-accent",
-                  !entries.length && past && "text-muted",
-                  key === today && "ring-2 ring-accent",
+                  "display relative flex h-11 flex-col items-center justify-center gap-0.5 rounded-xl text-[1.0625rem] active:opacity-70",
+                  done && "border border-accent/35 bg-accent/[0.16] text-accent",
+                  pending && !past && !isToday && "border border-white/10 bg-white/[0.05]",
+                  pending && past && "border border-dashed border-accent/70 text-accent",
+                  !entries.length && "font-medium text-faint",
+                  isToday &&
+                    !done &&
+                    "border-[1.5px] border-accent bg-accent/[0.06] font-bold text-fg shadow-[0_0_16px_rgb(42_245_179/0.3)]",
                 )}
               >
-                <span className={cn(entries.length > 0 && "font-semibold")}>{Number(key.slice(8))}</span>
-                {done && <CheckIcon size={12} strokeWidth={3} className="absolute bottom-1" />}
-                {pending && <span className="absolute bottom-1.5 h-1 w-1 rounded-full bg-accent" />}
+                {Number(key.slice(8))}
+                {pending && <span className="h-1 w-1 rounded-full bg-accent/80" aria-hidden />}
               </button>
             );
           })}
         </div>
-        <p className="mt-3 px-1 text-sm text-muted tabular-nums">
-          {monthEntries.length === 0
-            ? "Toca num dia para marcar um turno."
-            : `${monthEntries.length} ${monthEntries.length === 1 ? "turno" : "turnos"} este mês · ${formatEur(monthPlanned)} planeados para a mota`}
-        </p>
+        <div className="mt-3 flex flex-wrap gap-x-3.5 gap-y-1 px-1.5 text-xs text-muted">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-[3px] border border-accent/50 bg-accent/30" aria-hidden />
+            feito
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-[3px] border border-white/15 bg-white/[0.08]" aria-hidden />
+            marcado
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-[3px] border-[1.5px] border-accent" aria-hidden />
+            hoje
+          </span>
+        </div>
+        {monthEntries.length === 0 && <p className="mt-2 px-1.5 text-sm text-muted">Toca num dia para marcar um turno.</p>}
       </Card>
 
-      <Sheet open={selected != null} onClose={() => setSelected(null)} title={selected ? formatDayHeading(selected, new Date(data.renderedAt)) : ""}>
+      <Sheet
+        open={selected != null}
+        onClose={() => setSelected(null)}
+        title={selected ? formatDayHeading(selected, new Date(data.renderedAt)) : ""}
+      >
         {selected && (
           <DaySheet
             key={selected}
@@ -141,6 +200,7 @@ export function WorkCalendar({ data }: { data: WorkClientData }) {
               setSelected(null);
             }}
             onClose={() => setSelected(null)}
+            onRemove={removeEntry}
           />
         )}
       </Sheet>
@@ -156,6 +216,7 @@ function DaySheet({
   now,
   onDone,
   onClose,
+  onRemove,
 }: {
   day: string;
   now: number;
@@ -164,6 +225,7 @@ function DaySheet({
   isDone: (e: CalendarEntry) => boolean;
   onDone: (entry: CalendarEntry) => void;
   onClose: () => void;
+  onRemove: (entry: CalendarEntry) => void;
 }) {
   const [editing, setEditing] = useState<CalendarEntry | null>(null);
   const [adding, setAdding] = useState(entries.length === 0);
@@ -176,12 +238,12 @@ function DaySheet({
         const plan = estimatePlannedShift(entry, data.settings);
         const done = isDone(entry);
         return (
-          <div key={entry.id} className="rounded-2xl bg-card-2 p-4">
+          <div key={entry.id} className="rounded-[18px] border border-glass-border bg-card-2 p-4">
             <div className="flex items-baseline justify-between gap-3">
-              <p className="text-lg font-semibold tabular-nums">
-                {formatTime(entry.startsAt)}–{formatTime(entry.endsAt)}
+              <p className="display text-2xl">
+                {formatTime(entry.startsAt)} – {formatTime(entry.endsAt)}
               </p>
-              <p className={cn("font-semibold tabular-nums", done ? "text-success" : "text-accent")}>
+              <p className={cn("display text-xl", done ? "text-success" : "text-accent")}>
                 {formatEur(entry.doneCents ?? plan.plannedCents)}
               </p>
             </div>
@@ -191,7 +253,10 @@ function DaySheet({
             </p>
             {done ? (
               entry.shiftId ? (
-                <Link href={`/trabalho/turnos/${entry.shiftId}`} className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-success">
+                <Link
+                  href={`/trabalho/turnos/${entry.shiftId}`}
+                  className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-success"
+                >
                   <CheckIcon size={16} strokeWidth={3} /> Turno feito · ver resumo
                 </Link>
               ) : (
@@ -209,7 +274,9 @@ function DaySheet({
                 <Button variant="secondary" size="sm" onClick={() => setEditing(entry)}>
                   Editar
                 </Button>
-                <RemoveButton id={entry.id} onDone={onClose} />
+                <Button variant="danger" size="sm" onClick={() => onRemove(entry)}>
+                  Remover
+                </Button>
               </div>
             )}
           </div>
@@ -240,7 +307,7 @@ function ScheduleForm({ data, day, entry, onDone }: { data: WorkClientData; day:
     <form {...formProps} className="space-y-4">
       {entry && <input type="hidden" name="id" value={entry.id} />}
       <input type="hidden" name="date" value={day} />
-      <p className="font-semibold">{entry ? "Editar turno" : "Marcar turno"}</p>
+      <p className="eyebrow">{entry ? "Editar turno" : "Marcar turno"}</p>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Entrada" htmlFor="start">
           <TextInput
@@ -270,7 +337,8 @@ function ScheduleForm({ data, day, entry, onDone }: { data: WorkClientData; day:
         </Field>
       </div>
       <p className="-mt-2 px-1 text-xs text-muted">
-        A saída é preenchida com {formatHm(data.defaultShiftMinutes * 60_000)} de turno. Se for antes da entrada, conta como no dia seguinte.
+        A saída é preenchida com {formatHm(data.defaultShiftMinutes * 60_000)} de turno. Se for antes da entrada, conta como no dia
+        seguinte.
       </p>
       <Field label="Pausa não remunerada (minutos)" htmlFor="unpaid_break_minutes">
         <TextInput
@@ -295,20 +363,6 @@ function ScheduleForm({ data, day, entry, onDone }: { data: WorkClientData; day:
       <FormError error={error} />
       <SubmitButton pending={pending} size="lg" className="w-full">
         {entry ? "Guardar" : "Marcar turno"}
-      </SubmitButton>
-    </form>
-  );
-}
-
-function RemoveButton({ id, onDone }: { id: string; onDone: () => void }) {
-  const { pending, formProps } = useFormAction(deleteScheduledShiftAction, onDone, {
-    confirmMessage: "Tirar este turno do calendário?",
-  });
-  return (
-    <form {...formProps}>
-      <input type="hidden" name="id" value={id} />
-      <SubmitButton pending={pending} variant="danger" size="sm" className="w-full" pendingText="…">
-        Remover
       </SubmitButton>
     </form>
   );

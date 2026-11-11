@@ -69,7 +69,7 @@ export function PhotoUpload({
 
   return (
     <div className={cn("space-y-3", className)}>
-      <div className="relative aspect-[16/10] overflow-hidden rounded-2xl bg-card-2">
+      <div className="relative aspect-[16/10] overflow-hidden rounded-[22px] border border-glass-border bg-card-2">
         {shown ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={shown} alt={alt} className="h-full w-full object-cover" />
@@ -79,7 +79,7 @@ export function PhotoUpload({
             <span className="text-sm">Sem foto</span>
           </div>
         )}
-        {busy && <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-sm font-medium text-white">A carregar…</div>}
+        {busy && <div className="absolute inset-0 flex items-center justify-center bg-bg/60 text-sm font-medium text-fg backdrop-blur-sm">A carregar…</div>}
       </div>
       <div className="flex gap-2">
         <label className={buttonClass("secondary", "md", cn("flex-1 cursor-pointer", busy && "pointer-events-none opacity-50"))}>

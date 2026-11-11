@@ -7,7 +7,7 @@ Tempo estimado: **30 a 45 minutos**. Tudo o que é preciso é gratuito.
 
 - [x] **0.** Código no GitHub, no ramo `main` (já feito)
 - [ ] **1.** Criar o projeto no Supabase
-- [ ] **2.** Correr as 5 migrations SQL
+- [ ] **2.** Correr as migrations SQL
 - [ ] **3.** Configurar a autenticação (URLs, templates de email e SMTP)
 - [ ] **4.** Copiar as chaves do Supabase
 - [ ] **5.** *(Opcional)* Testar no computador
@@ -31,7 +31,7 @@ Precisas de:
 2. Preenche:
    - **Name**: `mota` (ou o que quiseres).
    - **Database password**: gera uma e guarda-a num gestor de passwords. A app não precisa dela, mas o Supabase pede-a para algumas operações.
-   - **Region**: `West EU (Ireland)` ou `Central EU (Frankfurt)`, perto de Portugal.
+   - **Region**: `West EU (London)`. A app corre na Vercel em Londres (`vercel.json`), por isso a base de dados fica ao lado e cada página carrega mais depressa.
 3. **Create new project** e espera 1 a 2 minutos.
 
 > **Importante sobre o email:** o serviço de email incluído no Supabase só envia para emails de **membros da equipa** do projeto e só alguns por hora. Por isso, configura um SMTP próprio no [passo 3.4](#34-smtp-próprio-para-os-emails-chegarem). Com o Gmail demora 5 minutos.
@@ -52,8 +52,9 @@ No painel do projeto: **SQL Editor** → **New query**. Para **cada ficheiro**, 
 | 4 | `supabase/migrations/20260927000004_new_user_seed.sql` | Dados iniciais (contas, equipamento, custos) no primeiro login |
 | 5 | `supabase/migrations/20260927000005_storage.sql` | Bucket privado `photos` para as fotos |
 | 6 | `supabase/migrations/20261008000001_work_mode.sql` | Modo Trabalho: turnos, pausas e poupança confirmada (só acrescenta tabelas) |
+| 7 | `supabase/migrations/20261111000001_complete_shift.sql` | "Turno feito" numa só ida à base de dados (só acrescenta uma função) |
 
-> **Já tinhas a app a funcionar?** Corre só o ficheiro 6. Não mexe nos dados que já existem.
+> **Já tinhas a app a funcionar?** Corre só os ficheiros que ainda não correste (por exemplo, só o 7). Não mexem nos dados que já existem.
 
 > Corre cada ficheiro **uma só vez**. Um erro como `type "account_kind" already exists` quer dizer que esse ficheiro já tinha sido corrido.
 
@@ -194,6 +195,11 @@ Abre [http://localhost:3000](http://localhost:3000):
 
 > Se mudares uma variável de ambiente depois do deploy, só tem efeito depois de **Redeploy** (Deployments → ⋯ → Redeploy).
 
+### 6.1 Rapidez (recomendado)
+
+- **Região:** o `vercel.json` já põe as funções da app em Londres (`lhr1`). Confirma em Vercel → **Settings → Functions → Function Region** que aparece *London*. Se o teu Supabase estiver noutra região (ex.: Frankfurt), muda o `vercel.json` para a região mais próxima (`fra1`) e faz push.
+- **Chaves de sessão assimétricas:** em Supabase → **Project Settings → JWT Keys**, se ainda estiveres no *Legacy JWT secret*, migra para as novas *JWT signing keys* e roda para a chave nova (ECC). Assim a app valida a sessão localmente, sem uma ida extra ao Supabase em cada página. Não é obrigatório: sem isto a app funciona na mesma, só um pouco mais devagar.
+
 ## 7. Apontar o Supabase para o domínio da Vercel
 
 No Supabase, em **Authentication → URL Configuration**:
@@ -268,6 +274,7 @@ A lista **"Para a meta ficar certa"** no Início vai-se riscando à medida que p
 | Entras, mas não há contas nem equipamento | O login foi feito antes de correr a migration 4 | No SQL Editor: `select public.seed_user_defaults(id) from auth.users;` |
 | "Não foi possível guardar…" em tudo | Migrations incompletas, ou projeto Supabase pausado | Verificação do passo 2; no painel do Supabase vê se o projeto está pausado (ver abaixo) |
 | Erro ao carregar a foto | Bucket `photos` não foi criado (migration 5) | Corre a migration 5. Se as policies derem erro de permissões, vê abaixo |
+| "Turno feito" fica em "a sincronizar…" e aparece "Não foi possível sincronizar" | A migration 7 não foi corrida | Corre `20261111000001_complete_shift.sql` no SQL Editor. O turno fica guardado no telemóvel e é enviado quando a função existir |
 | O iPhone mostra uma versão antiga depois de um deploy | O service worker ainda tem a versão anterior | Fecha a app (desliza para cima no seletor de apps) e volta a abrir |
 
 **Se a migration 5 der erro de permissões** (`must be owner of table objects`):
@@ -287,4 +294,4 @@ A lista **"Para a meta ficar certa"** no Início vai-se riscando à medida que p
 - **Projetos gratuitos do Supabase são pausados ao fim de 7 dias sem atividade.** Se usares a app todas as semanas não acontece. Se acontecer, no painel do Supabase carrega em **Restore project** e espera uns minutos.
 - **Backups:** o plano gratuito não inclui backups que possas descarregar. De vez em quando, exporta as tabelas no **Table Editor** (cada tabela → **Export → CSV**).
 - **Atualizações da app:** cada push para `main` faz deploy automático na Vercel. No iPhone, a nova versão aparece quando fechas e reabres a app.
-- **Trocar o ícone:** edita `scripts/icon.svg`, corre `node scripts/generate-icons.mjs` e faz push. No iPhone, remove e volta a adicionar a app ao ecrã principal para veres o ícone novo.
+- **Trocar o ícone:** a mota do ícone e da ilustração do Início está em `scripts/z400.svg`; o fundo e o enquadramento estão em `scripts/generate-icons.mjs`. Corre `node scripts/generate-icons.mjs` e faz push. No iPhone, remove e volta a adicionar a app ao ecrã principal para veres o ícone novo.

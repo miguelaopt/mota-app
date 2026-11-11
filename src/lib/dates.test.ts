@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayKey, formatDayHeading, formatDuration, formatMonthYear, formatRelative, fromLocalInput, toLocalInput } from "./dates";
+import { dayKey, dayTile, formatDayHeading, formatDuration, formatMonthYear, formatRelative, fromLocalInput, toLocalInput } from "./dates";
 
 const now = new Date("2026-09-27T10:00:00Z");
 
@@ -74,5 +74,15 @@ describe("toLocalInput / fromLocalInput (hora de Lisboa)", () => {
     expect(fromLocalInput("")).toBeNull();
     expect(fromLocalInput("2026-02-31T10:00")).toBeNull();
     expect(fromLocalInput("ontem")).toBeNull();
+  });
+});
+
+describe("dayTile", () => {
+  it("dia da semana abreviado e dia do mês, na hora de Lisboa", () => {
+    expect(dayTile(new Date("2026-11-11T12:00:00Z"))).toEqual({ weekday: "QUA", day: "11" });
+    // Inverno (UTC+0): 23:30 UTC ainda é o mesmo dia.
+    expect(dayTile(new Date("2026-11-14T23:30:00Z"))).toEqual({ weekday: "SÁB", day: "14" });
+    // Verão (UTC+1): 23:30 UTC já é o dia seguinte.
+    expect(dayTile(new Date("2026-07-04T23:30:00Z"))).toEqual({ weekday: "DOM", day: "5" });
   });
 });

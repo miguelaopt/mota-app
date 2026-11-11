@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckIcon } from "@/components/icons";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Field, FormError, MoneyInput, PercentInput, Segmented, TextInput } from "@/components/ui/fields";
@@ -75,7 +76,11 @@ export function WorkSettingsForm({ values, isNew }: { values: WorkSettingsValues
       </Field>
 
       {payMode === "hourly" ? (
-        <Field label="Valor líquido por hora (estimado)" htmlFor="hourly_rate" hint="O que recebes por hora, já sem descontos. A app não calcula impostos.">
+        <Field
+          label="Valor líquido por hora (estimado)"
+          htmlFor="hourly_rate"
+          hint="O que recebes por hora, já sem descontos. A app não calcula impostos."
+        >
           <MoneyInput id="hourly_rate" name="hourly_rate" value={rate} onChange={(e) => setRate(e.target.value)} />
         </Field>
       ) : (
@@ -138,22 +143,34 @@ export function WorkSettingsForm({ values, isNew }: { values: WorkSettingsValues
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Duração paga de um turno (h)" htmlFor="reference_hours">
-          <TextInput id="reference_hours" name="reference_hours" inputMode="decimal" defaultValue={num(values.referenceHours)} placeholder="média" />
+          <TextInput
+            id="reference_hours"
+            name="reference_hours"
+            inputMode="decimal"
+            defaultValue={num(values.referenceHours)}
+            placeholder="média"
+          />
         </Field>
         <Field label="Turnos por semana" htmlFor="shifts_per_week">
-          <TextInput id="shifts_per_week" name="shifts_per_week" inputMode="decimal" defaultValue={num(values.shiftsPerWeek)} placeholder="opcional" />
+          <TextInput
+            id="shifts_per_week"
+            name="shifts_per_week"
+            inputMode="decimal"
+            defaultValue={num(values.shiftsPerWeek)}
+            placeholder="opcional"
+          />
         </Field>
       </div>
       <p className="-mt-3 px-1 text-xs text-muted">
         A duração serve para os «turnos equivalentes» (vazio = média dos teus turnos). Os turnos por semana dão um mês aproximado.
       </p>
 
-      <fieldset className="space-y-2 rounded-xl bg-card-2 px-3.5 py-3">
-        <label className="flex items-center justify-between gap-3">
+      <fieldset className="divide-y divide-sep rounded-[14px] border border-glass-border bg-card-2 px-3.5">
+        <label className="flex min-h-12 items-center justify-between gap-3">
           <span>Vibração ao picar</span>
           <input type="checkbox" name="haptics" defaultChecked={values.haptics} className="h-5 w-5 accent-[var(--accent)]" />
         </label>
-        <label className="flex items-center justify-between gap-3">
+        <label className="flex min-h-12 items-center justify-between gap-3">
           <span>Animações</span>
           <input type="checkbox" name="animations" defaultChecked={values.animations} className="h-5 w-5 accent-[var(--accent)]" />
         </label>
@@ -163,7 +180,15 @@ export function WorkSettingsForm({ values, isNew }: { values: WorkSettingsValues
 
       <FormError error={error} />
       <SubmitButton pending={pending} size="lg" className="w-full">
-        {isNew ? "Começar" : saved ? "Guardado ✓" : "Guardar"}
+        {isNew ? (
+          "Começar"
+        ) : saved ? (
+          <>
+            <CheckIcon size={18} strokeWidth={2.6} /> Guardado
+          </>
+        ) : (
+          "Guardar"
+        )}
       </SubmitButton>
       {!isNew && (
         <p className="px-1 text-xs text-muted">

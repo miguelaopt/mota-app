@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
 import Link from "next/link";
-import { CheckIcon, ChevronRightIcon, MotorcycleIcon, SlidersIcon } from "@/components/icons";
+import { CheckIcon, ChevronRightIcon, SlidersIcon } from "@/components/icons";
 import { Card, ListGroup, Section, StatRow } from "@/components/ui/Card";
-import { ProgressBar } from "@/components/ui/ProgressBar";
+import { PROJECTION_STRIPES, ProgressBar } from "@/components/ui/ProgressBar";
+import { ReceivePaymentBanner } from "@/components/work/ReceivePaymentBanner";
 import { WorkHomeCard, WorkProjectionLine } from "@/components/work/WorkHomeCard";
 import { requireSession } from "@/lib/auth";
 import { cn } from "@/lib/cn";
@@ -12,6 +14,7 @@ import { formatDuration, formatMonthYear } from "@/lib/dates";
 import type { TargetStatus } from "@/lib/finance/dashboard";
 import type { Forecast } from "@/lib/finance/forecast";
 import { formatEur, formatPct } from "@/lib/finance/money";
+import { buildConfirmData } from "@/lib/work/confirm";
 
 /** Ritmo arredondado ao euro: "≈ 494 €/mês". */
 function perMonth(cents: number) {
@@ -40,18 +43,15 @@ function forecastLabel(forecast: Forecast): { date: string; detail: string } {
 function TargetCard({ title, target }: { title: string; target: TargetStatus }) {
   const forecast = forecastLabel(target.forecast);
   return (
-    <Card className="flex flex-col gap-2 p-3.5">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted">{title}</p>
-      <p className="text-lg font-bold leading-tight tabular-nums">{formatEur(target.totalCents, { hideZeroCents: true })}</p>
-      <ProgressBar
-        pct={target.pct}
-        size="sm"
-        tone={target.reached ? "success" : "accent"}
-        label={`${title}: ${formatPct(target.pct)}`}
-      />
+    <Card className="flex flex-col gap-2.5 p-4">
+      <p className="eyebrow">{title}</p>
+      <p className="display text-[1.75rem]">{formatEur(target.totalCents, { hideZeroCents: true })}</p>
+      <ProgressBar pct={target.pct} size="sm" tone={target.reached ? "success" : "accent"} label={`${title}: ${formatPct(target.pct)}`} />
       <p className="text-sm tabular-nums">
         {target.reached ? (
-          <span className="font-medium text-success">Atingido ✓</span>
+          <span className="inline-flex items-center gap-1 font-medium text-success">
+            <CheckIcon size={15} strokeWidth={2.6} /> Atingido
+          </span>
         ) : (
           <>
             <span className="text-muted">Falta </span>
@@ -59,7 +59,7 @@ function TargetCard({ title, target }: { title: string; target: TargetStatus }) 
           </>
         )}
       </p>
-      {!target.reached && <p className="text-sm text-muted">{forecast.date}</p>}
+      {!target.reached && <p className="text-sm text-muted first-letter:uppercase">{forecast.date}</p>}
     </Card>
   );
 }
@@ -67,7 +67,7 @@ function TargetCard({ title, target }: { title: string; target: TargetStatus }) 
 export default async function HomePage() {
   const { supabase, userId } = await requireSession();
   const now = new Date();
-  const [{ motorcycle, settings, dashboard: d, unpricedGear, unpricedCosts }, work] = await Promise.all([
+  const [{ motorcycle, settings, accounts, snapshots, dashboard: d, unpricedGear, unpricedCosts }, work] = await Promise.all([
     getDashboardData(supabase, now),
     getWorkData(supabase, now),
   ]);
@@ -77,7 +77,9 @@ export default async function HomePage() {
   // Projeção (tracejada na barra): planeado em turnos concluídos e ainda não confirmado.
   const projectedPct =
     workData && d.full.totalCents > 0 ? ((d.savedCents + workData.pendingPlannedCents) / d.full.totalCents) * 100 : undefined;
+  const confirm = work ? buildConfirmData({ shifts: work.shifts, accounts, snapshots, attributions: work.attributions, now }) : null;
   const fullForecast = forecastLabel(d.full.forecast);
+  const showProjection = projectedPct != null && projectedPct > d.full.pct + 0.05;
   const hasGoal = d.full.totalCents > 0;
 
   const setup = [
@@ -91,118 +93,141 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* Cabeçalho com a foto da mota */}
-      <div className="relative mt-1">
-        <Link
-          href="/mota"
-          className="relative block aspect-[16/10] overflow-hidden rounded-3xl bg-gradient-to-br from-orange-400 to-orange-700 active:opacity-90"
-        >
-          {photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={photoUrl} alt={motorcycle?.model ?? ""} className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full items-center justify-center text-white/85">
-              <MotorcycleIcon size={88} strokeWidth={1.4} />
-            </div>
-          )}
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/35 to-transparent p-4 pt-14 text-white">
+      {/* Herói: a mota em estúdio (a foto escolhida ou a ilustração da Z400) */}
+      <div className="relative -mx-4 -mt-[calc(var(--safe-top)+0.75rem)] h-[calc(var(--safe-top)+21rem)] overflow-x-clip">
+        <div aria-hidden className="absolute inset-0 bg-[radial-gradient(120%_90%_at_60%_30%,#1d2125_0%,#0e1012_60%,#0b0c0e_100%)]" />
+        {photoUrl ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={photoUrl} alt={motorcycle?.model ?? ""} className="absolute inset-0 h-full w-full object-cover" />
+            <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-bg/80 via-bg/10 to-bg" />
+          </>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src="/illustrations/z400.webp"
+            alt=""
+            width={924}
+            height={540}
+            className="absolute left-1/2 top-[calc(var(--safe-top)+5.5rem)] w-[min(100%,27rem)] max-w-none -translate-x-1/2"
+          />
+        )}
+        <div className="relative z-10 flex items-start justify-between gap-3 px-5 pt-[calc(var(--safe-top)+1.25rem)]">
+          <Link href="/mota" className="min-w-0 active:opacity-70">
             {motorcycle ? (
               <>
-                <p className="text-sm text-white/80">A tua próxima mota</p>
-                <p className="text-2xl font-bold leading-tight">{motorcycle.model}</p>
-                <p className="text-sm font-medium text-white/90 tabular-nums">{formatEur(motorcycle.priceCents, { hideZeroCents: true })}</p>
+                <p className="eyebrow">A tua próxima mota</p>
+                <p className="display mt-1 truncate text-[2.125rem] leading-[1.05]">{motorcycle.model}</p>
+                <p className="mt-0.5 text-sm text-muted tabular-nums">{formatEur(motorcycle.priceCents, { hideZeroCents: true })}</p>
               </>
             ) : (
               <>
-                <p className="text-2xl font-bold leading-tight">Qual é a mota?</p>
-                <p className="text-sm text-white/85">Toca para escolheres o modelo e o preço.</p>
+                <p className="eyebrow">Ainda sem mota</p>
+                <p className="display mt-1 text-[2.125rem] leading-[1.05]">Qual é a mota?</p>
+                <p className="mt-0.5 text-sm text-muted">Toca para escolheres o modelo e o preço.</p>
               </>
             )}
-          </div>
-        </Link>
-        <Link
-          href="/definicoes"
-          aria-label="Definições"
-          className="absolute right-3 top-3 rounded-full bg-black/35 p-2 text-white backdrop-blur-md active:opacity-70"
-        >
-          <SlidersIcon size={20} />
-        </Link>
+          </Link>
+          <Link
+            href="/definicoes"
+            aria-label="Definições"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.06] text-fg backdrop-blur-xl active:opacity-70"
+          >
+            <SlidersIcon size={20} />
+          </Link>
+        </div>
+      </div>
+
+      {/* Progresso principal, em vidro por cima da mota */}
+      <div className="relative z-10 -mt-9 space-y-3">
+        {hasGoal ? (
+          <Card className="p-[1.125rem]">
+            <div className="flex items-end justify-between gap-3">
+              <div className="min-w-0">
+                <p className="eyebrow">Já juntaste</p>
+                <p className="display mt-1 text-[clamp(2.25rem,12.5vw,3.125rem)] leading-[0.95]">{formatEur(d.savedCents)}</p>
+                <p className="mt-1 text-[0.8125rem] text-muted tabular-nums">
+                  de {formatEur(d.full.totalCents, { hideZeroCents: true })} · setup completo
+                </p>
+              </div>
+              <p
+                className={cn("display glow-text text-[3.25rem] font-bold leading-[0.95]", d.full.reached ? "text-success" : "text-accent")}
+              >
+                {formatPct(d.full.pct)}
+              </p>
+            </div>
+
+            <ProgressBar
+              className="mt-4"
+              pct={d.full.pct}
+              projectedPct={projectedPct}
+              markPct={d.minimumMarkPct}
+              tone={d.full.reached ? "success" : "accent"}
+              label={`Progresso: ${formatPct(d.full.pct)}`}
+            />
+            <div className="mt-2.5 flex flex-wrap gap-x-3.5 gap-y-1 text-xs text-muted tabular-nums">
+              <span className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-accent" aria-hidden />
+                guardado
+              </span>
+              {showProjection && (
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-[2px]" style={{ background: PROJECTION_STRIPES }} aria-hidden />
+                  por confirmar
+                </span>
+              )}
+              {d.minimumMarkPct > 0 && d.minimumMarkPct < 100 && (
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-0.5 rounded-full bg-fg/70" aria-hidden />
+                  mínimo {formatEur(d.minimum.totalCents, { hideZeroCents: true })}
+                </span>
+              )}
+            </div>
+            {workData && <WorkProjectionLine data={workData} />}
+
+            {d.full.reached ? (
+              <p className="mt-4 flex items-center gap-2 rounded-2xl border border-accent-line bg-success-soft px-4 py-3 font-semibold text-success">
+                <CheckIcon size={18} strokeWidth={2.6} /> Meta atingida. Está na hora de ir buscar a mota.
+              </p>
+            ) : (
+              <>
+                <div className="mt-4 grid grid-cols-2 gap-3 border-t border-sep pt-4">
+                  <div>
+                    <p className="text-xs text-muted">Falta</p>
+                    <p className="display mt-1 text-[1.75rem]">{formatEur(d.full.missingCents, { hideZeroCents: true })}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted">Previsão</p>
+                    <p className="display mt-1 text-[1.75rem] first-letter:uppercase">{fullForecast.date.replace(" de ", " ")}</p>
+                  </div>
+                </div>
+                <p className="mt-2 text-[0.8125rem] text-muted">
+                  {d.full.forecast.source === "none" ? (
+                    <Link href="/definicoes" className="text-accent">
+                      {fullForecast.detail}
+                    </Link>
+                  ) : (
+                    fullForecast.detail
+                  )}
+                </p>
+              </>
+            )}
+          </Card>
+        ) : (
+          <Card className="p-[1.125rem]">
+            <p className="eyebrow">Já juntaste</p>
+            <p className="display mt-1 text-[clamp(2.25rem,12.5vw,3.125rem)] leading-[0.95]">{formatEur(d.savedCents)}</p>
+            <p className="mt-3 text-sm text-muted">
+              Ainda não há meta. Escolhe a mota e põe os preços do equipamento e dos custos para veres quanto falta.
+            </p>
+          </Card>
+        )}
+
+        {confirm && <ReceivePaymentBanner data={confirm} attributionId={randomUUID()} renderedAt={now.getTime()} />}
       </div>
 
       {/* Trabalho: próximo turno, turno ativo ou resumo do último */}
       <WorkHomeCard data={workData} model={motorcycle?.model ?? "mota"} />
-
-      {/* Progresso principal */}
-      {hasGoal ? (
-        <Card className="mt-4 p-5">
-          <div className="flex items-end justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm text-muted">Já juntaste</p>
-              <p className="text-[2.1rem] font-bold leading-tight tracking-tight tabular-nums">{formatEur(d.savedCents)}</p>
-              <p className="text-sm text-muted tabular-nums">de {formatEur(d.full.totalCents)} para o setup completo</p>
-              {workData && <WorkProjectionLine data={workData} />}
-            </div>
-            <p
-              className={cn(
-                "text-[2.6rem] font-extrabold leading-none tracking-tight tabular-nums",
-                d.full.reached ? "text-success" : "text-accent",
-              )}
-            >
-              {formatPct(d.full.pct)}
-            </p>
-          </div>
-
-          <div className="relative mt-5 pb-5">
-            <ProgressBar
-              pct={d.full.pct}
-              projectedPct={projectedPct}
-              size="lg"
-              tone={d.full.reached ? "success" : "accent"}
-              label={`Progresso: ${formatPct(d.full.pct)}`}
-            />
-            {d.minimumMarkPct > 0 && d.minimumMarkPct < 100 && (
-              <div className="absolute top-0 flex -translate-x-1/2 flex-col items-center" style={{ left: `${d.minimumMarkPct}%` }} aria-hidden>
-                <span className="h-4 w-0.5 rounded-full bg-fg/60" />
-                <span className="mt-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-muted">mínimo</span>
-              </div>
-            )}
-          </div>
-
-          {d.full.reached ? (
-            <p className="mt-2 rounded-2xl bg-success-soft px-4 py-3 font-semibold text-success">
-              Meta atingida! 🎉 Está na hora de ir buscar a mota.
-            </p>
-          ) : (
-            <div className="mt-2 grid grid-cols-[auto_1fr] gap-x-8 gap-y-3 border-t border-sep pt-4">
-              <div>
-                <p className="text-sm text-muted">Falta</p>
-                <p className="text-xl font-bold tabular-nums">{formatEur(d.full.missingCents)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted">Data prevista</p>
-                <p className="text-lg font-bold leading-snug first-letter:uppercase">{fullForecast.date}</p>
-              </div>
-              <p className="col-span-2 text-sm text-muted">
-                {d.full.forecast.source === "none" ? (
-                  <Link href="/definicoes" className="text-accent">
-                    {fullForecast.detail}
-                  </Link>
-                ) : (
-                  fullForecast.detail
-                )}
-              </p>
-            </div>
-          )}
-        </Card>
-      ) : (
-        <Card className="mt-4 p-5">
-          <p className="text-sm text-muted">Já juntaste</p>
-          <p className="text-[2.1rem] font-bold leading-tight tracking-tight tabular-nums">{formatEur(d.savedCents)}</p>
-          <p className="mt-2 text-muted">
-            Ainda não há meta. Escolhe a mota e põe os preços do equipamento e dos custos para veres quanto falta.
-          </p>
-        </Card>
-      )}
 
       {/* Mínimo vs completo */}
       {hasGoal && (
@@ -216,11 +241,11 @@ export default async function HomePage() {
         <Section title="Para a meta ficar certa">
           <ListGroup>
             {setup.map((step) => (
-              <Link key={step.href} href={step.href} className="flex items-center gap-3 px-4 py-3 active:bg-card-2">
+              <Link key={step.href} href={step.href} className="flex min-h-12 items-center gap-3 px-4 py-3 active:bg-card-2">
                 <span
                   className={cn(
                     "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2",
-                    step.done ? "border-success bg-success text-white" : "border-track",
+                    step.done ? "border-accent bg-accent text-accent-fg" : "border-white/15",
                   )}
                 >
                   {step.done && <CheckIcon size={14} strokeWidth={3} />}

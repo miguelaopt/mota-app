@@ -14,9 +14,9 @@ export function LoginForm({ linkError }: { linkError: boolean }) {
 
   if (state.step === "code") {
     return (
-      <form action={formAction} className="mt-8 space-y-4">
+      <form action={formAction} className="space-y-4">
         <input type="hidden" name="email" value={state.email} />
-        <div className="rounded-2xl bg-card p-4 text-sm">
+        <div className="rounded-[18px] border border-glass-border bg-card-2 p-4 text-sm">
           <p className="font-medium">{state.info ?? `Enviámos um email para ${state.email}.`}</p>
           <p className="mt-1 text-muted">
             Escreve aqui o código de 6 dígitos. No iPhone, usa o código em vez do link: o link abre no Safari e não na app.
@@ -33,7 +33,7 @@ export function LoginForm({ linkError }: { linkError: boolean }) {
             placeholder="123456"
             autoFocus
             required
-            className="text-center text-2xl tracking-[0.4em] tabular-nums"
+            className="display h-16 text-center text-[2rem] tracking-[0.4em]"
           />
         </Field>
         <FormError error={state.error} />
@@ -53,7 +53,7 @@ export function LoginForm({ linkError }: { linkError: boolean }) {
   }
 
   return (
-    <form action={formAction} className="mt-8 space-y-4">
+    <form action={formAction} className="space-y-4">
       <Field label="Email" htmlFor="email">
         <TextInput
           id="email"
