@@ -518,6 +518,21 @@ export type Database = {
         };
         Returns: string;
       };
+      complete_scheduled_shift: {
+        Args: {
+          p_id: string;
+          p_started_at: string;
+          p_ended_at: string;
+          p_scheduled_shift_id: string | null;
+          p_motorcycle_id: string | null;
+          p_pay_mode: Database["public"]["Enums"]["pay_mode"];
+          p_hourly_rate_cents: number;
+          p_allocation_bp: number;
+          p_target: Database["public"]["Enums"]["goal_target"];
+          p_breaks: { id: string; started_at: string; ended_at: string; paid: boolean }[];
+        };
+        Returns: string;
+      };
     };
     Enums: {
       account_kind: "available" | "invested";

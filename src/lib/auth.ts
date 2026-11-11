@@ -1,11 +1,19 @@
 import "server-only";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
+import { decodeSession, SESSION_HEADER } from "@/lib/session-header";
 import { createClient } from "@/lib/supabase/server";
 
-/** Sessão atual (validada pelo Supabase), memorizada por pedido. */
+/**
+ * Sessão atual, memorizada por pedido. Normalmente já vem validada pelo proxy
+ * (cabeçalho interno); só sem ele pergunta ao Supabase.
+ */
 export const getSession = cache(async () => {
   const supabase = await createClient();
+  const fromProxy = decodeSession((await headers()).get(SESSION_HEADER));
+  if (fromProxy) return { supabase, userId: fromProxy.sub, email: fromProxy.email };
+
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (!claims?.sub) return null;

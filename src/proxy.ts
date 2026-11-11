@@ -1,5 +1,6 @@
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { encodeSession, SESSION_HEADER } from "@/lib/session-header";
 import { getSupabaseConfig } from "@/lib/supabase/env";
 
 /** Caminhos acessíveis sem sessão. */
@@ -54,48 +55,57 @@ export async function proxy(request: NextRequest) {
     return configErrorPage(config.problems);
   }
 
-  let response = NextResponse.next({ request });
+  // Este cabeçalho só pode vir do proxy: apaga sempre o que o browser enviar.
+  request.headers.delete(SESSION_HEADER);
 
+  const pendingCookies: Array<{ name: string; value: string; options: CookieOptions }> = [];
+  const pendingHeaders: Record<string, string> = {};
   const supabase = createServerClient(config.url, config.key, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet, headers) {
+        // Tokens renovados: ficam no pedido (para a página) e na resposta (para o browser).
         for (const { name, value } of cookiesToSet) request.cookies.set(name, value);
-        response = NextResponse.next({ request });
-        for (const { name, value, options } of cookiesToSet) response.cookies.set(name, value, options);
-        for (const [key, value] of Object.entries(headers ?? {})) response.headers.set(key, value);
+        pendingCookies.push(...cookiesToSet);
+        Object.assign(pendingHeaders, headers ?? {});
       },
     },
   });
 
   // Não pôr código entre createServerClient e getClaims: é aqui que a sessão é renovada.
-  let signedIn = false;
+  let session: { sub: string; email: string | null } | null = null;
   try {
     const { data } = await supabase.auth.getClaims();
-    signedIn = Boolean(data?.claims?.sub);
+    const claims = data?.claims;
+    if (claims?.sub) session = { sub: claims.sub, email: typeof claims.email === "string" ? claims.email : null };
   } catch (error) {
     // Falha inesperada (ex.: Supabase inacessível): segue sem sessão. As páginas
     // protegidas voltam a verificar a sessão e o RLS protege os dados.
     console.error("[mota] Erro a validar a sessão no proxy", error);
   }
-  const { pathname } = request.nextUrl;
+  // A página reutiliza esta validação em vez de voltar a perguntar ao Supabase.
+  if (session) request.headers.set(SESSION_HEADER, encodeSession(session));
 
+  const withCookies = (response: NextResponse) => {
+    for (const { name, value, options } of pendingCookies) response.cookies.set(name, value, options);
+    for (const [key, value] of Object.entries(pendingHeaders)) response.headers.set(key, value);
+    return response;
+  };
+
+  const { pathname } = request.nextUrl;
   const redirectTo = (path: string) => {
     const url = request.nextUrl.clone();
     url.pathname = path;
     url.search = "";
-    const redirect = NextResponse.redirect(url);
-    // Manter os cookies renovados no redirect.
-    for (const cookie of response.cookies.getAll()) redirect.cookies.set(cookie);
-    return redirect;
+    return withCookies(NextResponse.redirect(url));
   };
 
-  if (!signedIn && !isPublic(pathname)) return redirectTo("/login");
-  if (signedIn && pathname === "/login") return redirectTo("/");
+  if (!session && !isPublic(pathname)) return redirectTo("/login");
+  if (session && pathname === "/login") return redirectTo("/");
 
-  return response;
+  return withCookies(NextResponse.next({ request }));
 }
 
 export const config = {

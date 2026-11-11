@@ -1,7 +1,7 @@
 "use server";
 
 import type { ActionResult } from "@/lib/action-result";
-import { PHOTOS_BUCKET } from "@/lib/data/photos";
+import { forgetPhotoUrl, PHOTOS_BUCKET } from "@/lib/data/photos";
 import { FormError } from "@/lib/forms";
 import { check, runAction } from "@/lib/server-action";
 
@@ -30,6 +30,7 @@ export async function setPhotoAction(target: PhotoTarget, id: string, path: stri
     check(await supabase.from(table).update({ photo_path: path }).eq("id", id));
 
     if (row.photo_path && row.photo_path !== path) {
+      forgetPhotoUrl(row.photo_path);
       await supabase.storage.from(PHOTOS_BUCKET).remove([row.photo_path]);
     }
   });

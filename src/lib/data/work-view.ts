@@ -12,14 +12,15 @@ import type { Motorcycle } from "./motorcycles";
 import { getAttributions, getCalendarShifts, getShifts, getUpcomingScheduledShifts, getWorkSettings, type ShiftRecord } from "./work";
 
 export async function getWorkData(db: Db, now: Date) {
-  const settings = await getWorkSettings(db);
-  if (!settings) return null;
-  const [shifts, attributions, upcoming, calendar] = await Promise.all([
+  // Tudo em paralelo (a configuração não espera pelo resto nem o resto por ela).
+  const [settings, shifts, attributions, upcoming, calendar] = await Promise.all([
+    getWorkSettings(db),
     getShifts(db),
     getAttributions(db),
     getUpcomingScheduledShifts(db, now),
     getCalendarShifts(db, new Date(now.getTime() - 62 * DAY_MS), new Date(now.getTime() + 124 * DAY_MS)),
   ]);
+  if (!settings) return null;
   const stats = computeWorkStats(
     shifts,
     attributions.map((a) => a.amountCents),

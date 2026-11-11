@@ -73,55 +73,26 @@ async function overlappingEnd(db: Db, at: number, exceptId: string): Promise<num
 
 async function applyOnServer(db: Db, op: WorkOp, serverNow: number): Promise<void> {
   if (op.type === "complete") {
-    if (await findShift(db, op.shift.id)) return; // já registado (duplo toque ou reenvio)
+    // Validação local primeiro (pausas dentro do turno, etc.); o resto, incluindo
+    // repetição e sobreposição com turnos picados, é feito numa só ida à BD.
     const s = op.shift;
     if (s.startedAt > serverNow + 5 * MINUTE_MS) throw new FormError("Este turno ainda não começou.");
     const problem = validateShiftTimes({ startedAt: s.startedAt, endedAt: s.endedAt, breaks: s.breaks });
     if (problem) throw new FormError(problem);
-    const scheduledId = await exists(db, "scheduled_shifts", s.scheduledShiftId);
-    const { data: overlap, error: overlapError } = await db
-      .from("shifts")
-      .select("id, ended_at, scheduled_shift_id")
-      .lt("started_at", iso(s.endedAt))
-      .or(`ended_at.is.null,ended_at.gt.${iso(s.startedAt)}`)
-      .limit(1);
-    if (overlapError) throw new Error(overlapError.message);
-    if (overlap.length > 0) {
-      const existing = overlap[0];
-      if (!existing.ended_at) throw new FormError("Tens um turno a decorrer a essa hora: pica a saída primeiro.");
-      // O trabalho deste dia já foi registado (ex.: com "Picar entrada"): liga-o ao
-      // calendário em vez de o contar duas vezes.
-      if (scheduledId) {
-        if (!existing.scheduled_shift_id) {
-          check(await db.from("shifts").update({ scheduled_shift_id: scheduledId }).eq("id", existing.id));
-        }
-        check(await db.from("scheduled_shifts").update({ status: "done" }).eq("id", scheduledId));
-      }
-      return;
-    }
-
-    check(
-      await db.from("shifts").insert({
-        id: s.id,
-        started_at: iso(s.startedAt),
-        ended_at: iso(s.endedAt),
-        planned_end_at: iso(s.endedAt),
-        scheduled_shift_id: scheduledId,
-        motorcycle_id: await exists(db, "motorcycles", s.motorcycleId),
-        pay_mode: s.payMode,
-        hourly_rate_cents: s.hourlyRateCents,
-        allocation_bp: s.allocationBp,
-        target: s.target,
-      }),
-    );
-    if (s.breaks.length > 0) {
-      check(
-        await db.from("shift_breaks").insert(
-          s.breaks.map((b) => ({ id: b.id, shift_id: s.id, started_at: iso(b.startedAt), ended_at: iso(b.endedAt!), paid: b.paid })),
-        ),
-      );
-    }
-    if (scheduledId) check(await db.from("scheduled_shifts").update({ status: "done" }).eq("id", scheduledId));
+    const { error } = await db.rpc("complete_scheduled_shift", {
+      p_id: s.id,
+      p_started_at: iso(s.startedAt),
+      p_ended_at: iso(s.endedAt),
+      p_scheduled_shift_id: s.scheduledShiftId,
+      p_motorcycle_id: s.motorcycleId,
+      p_pay_mode: s.payMode,
+      p_hourly_rate_cents: s.hourlyRateCents,
+      p_allocation_bp: s.allocationBp,
+      p_target: s.target,
+      p_breaks: s.breaks.map((b) => ({ id: b.id, started_at: iso(b.startedAt), ended_at: iso(b.endedAt!), paid: b.paid })),
+    });
+    if (error?.code === "P0001") throw new FormError(error.message);
+    if (error) throw new Error(error.message);
     return;
   }
 
