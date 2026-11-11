@@ -3,7 +3,7 @@ import { cn } from "@/lib/cn";
 import { centsToInput, type Cents } from "@/lib/finance/money";
 
 export const inputClass =
-  "w-full rounded-xl border border-sep bg-card-2 px-3.5 py-3 text-fg outline-none placeholder:text-muted/70 focus:border-accent focus:ring-1 focus:ring-accent";
+  "w-full rounded-[14px] border border-glass-border bg-card-2 px-3.5 py-3 text-fg outline-none transition-[border-color,box-shadow] placeholder:text-faint focus:border-accent-line focus:ring-[3px] focus:ring-accent-soft";
 
 export function Field({ label, hint, htmlFor, children }: { label: ReactNode; hint?: ReactNode; htmlFor?: string; children: ReactNode }) {
   return (
@@ -109,7 +109,7 @@ export function Segmented<T extends string>({
   onChange?: (value: T) => void;
 }) {
   return (
-    <div className="flex rounded-xl bg-card-2 p-1" role="radiogroup">
+    <div className="flex rounded-[14px] border border-glass-border bg-card-2 p-1" role="radiogroup">
       {options.map((option) => (
         <label key={option.value} className="relative flex-1">
           <input
@@ -120,7 +120,7 @@ export function Segmented<T extends string>({
             onChange={onChange ? () => onChange(option.value) : undefined}
             className="peer sr-only"
           />
-          <span className="block cursor-pointer rounded-lg px-2 py-2 text-center text-sm font-medium text-muted transition-colors peer-checked:bg-card peer-checked:text-fg peer-checked:shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-accent">
+          <span className="flex min-h-10 cursor-pointer items-center justify-center rounded-[10px] px-2 py-2 text-center text-sm font-medium text-muted transition-colors peer-checked:bg-accent peer-checked:font-semibold peer-checked:text-accent-fg peer-focus-visible:ring-2 peer-focus-visible:ring-accent">
             {option.label}
           </span>
         </label>
@@ -132,7 +132,7 @@ export function Segmented<T extends string>({
 export function FormError({ error }: { error?: string | null }) {
   if (!error) return null;
   return (
-    <p role="alert" className="rounded-xl bg-danger-soft px-3.5 py-2.5 text-sm text-danger">
+    <p role="alert" className="rounded-[14px] border border-danger/25 bg-danger-soft px-3.5 py-2.5 text-sm text-danger">
       {error}
     </p>
   );

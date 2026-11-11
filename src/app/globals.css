@@ -1,64 +1,62 @@
 @import "tailwindcss";
 
+/*
+ * Mota — onyx & jade.
+ * Tema escuro fixo: onyx como base, vidro fosco por cima da foto da mota e
+ * jade néon só onde há leitura (valores, progresso, LED). Números em letra
+ * condensada, como num painel de instrumentos.
+ */
 :root {
-  --bg: #f2f2f7;
-  --card: #ffffff;
-  --card-2: #f7f7fa;
-  --fg: #111114;
-  --muted: #6b6b73;
-  --sep: rgb(60 60 67 / 0.16);
-  --track: #e5e5ea;
-  --accent: #ea580c;
-  --accent-fg: #ffffff;
-  --accent-soft: #ffedd5;
-  --success: #15803d;
-  --success-soft: #dcfce7;
-  --danger: #dc2626;
-  --danger-soft: #fee2e2;
-  --warning: #b45309;
-  --warning-soft: #fef3c7;
+  --bg: #0b0c0e;
+  --bg-raised: #111316;
+  /* Superfícies de vidro: translúcidas, com fio de luz no topo. */
+  --card: rgb(22 24 27 / 0.62);
+  --card-solid: #16181b;
+  --card-2: rgb(255 255 255 / 0.05);
+  --glass-border: rgb(255 255 255 / 0.09);
+  --glass-highlight: rgb(255 255 255 / 0.07);
+  --fg: #eef1ef;
+  --muted: #a0a8a5;
+  --faint: #7e8683;
+  --sep: rgb(255 255 255 / 0.08);
+  --track: rgb(255 255 255 / 0.08);
+  --accent: #2af5b3;
+  --accent-fg: #04130d;
+  --accent-soft: rgb(42 245 179 / 0.12);
+  --accent-line: rgb(42 245 179 / 0.32);
+  --success: #2af5b3;
+  --success-soft: rgb(42 245 179 / 0.12);
+  --danger: #ff7a7a;
+  --danger-soft: rgb(255 122 122 / 0.12);
+  --warning: #f5c060;
+  --warning-soft: rgb(245 192 96 / 0.12);
 
-  --tabbar-h: 3.5rem;
+  --tabbar-h: 4rem;
+  --tabbar-gap: 0.625rem;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
 
-  color-scheme: light dark;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #000000;
-    --card: #1c1c1e;
-    --card-2: #2c2c2e;
-    --fg: #f5f5f7;
-    --muted: #9a9aa1;
-    --sep: rgb(84 84 88 / 0.55);
-    --track: #3a3a3c;
-    --accent: #fb923c;
-    --accent-fg: #1c1004;
-    --accent-soft: rgb(251 146 60 / 0.16);
-    --success: #4ade80;
-    --success-soft: rgb(74 222 128 / 0.14);
-    --danger: #f87171;
-    --danger-soft: rgb(248 113 113 / 0.14);
-    --warning: #fbbf24;
-    --warning-soft: rgb(251 191 36 / 0.14);
-  }
+  color-scheme: dark;
 }
 
 @theme inline {
   --color-bg: var(--bg);
+  --color-bg-raised: var(--bg-raised);
   --color-card: var(--card);
+  --color-card-solid: var(--card-solid);
   --color-card-2: var(--card-2);
+  --color-glass-border: var(--glass-border);
   --color-fg: var(--fg);
   --color-muted: var(--muted);
+  --color-faint: var(--faint);
   --color-sep: var(--sep);
   --color-track: var(--track);
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-danger: var(--danger);
@@ -66,6 +64,7 @@
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-barlow), "SF Pro Display", -apple-system, "Arial Narrow", sans-serif;
 }
 
 html {
@@ -81,6 +80,17 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Grão fino por cima de tudo: tira o ar "plástico" das superfícies escuras. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
 /* Inputs com pelo menos 16px: o Safari do iPhone faz zoom em fontes menores. */
 input,
 select,
@@ -88,18 +98,66 @@ textarea {
   font-size: max(16px, 1em);
 }
 
-/* Área útil respeitando notch, barra inferior e tab bar. */
+::selection {
+  background: rgb(42 245 179 / 0.3);
+}
+
+/* ---------- Componentes base ---------- */
+
+@utility glass {
+  background: var(--card);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 18px 40px rgb(0 0 0 / 0.38);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  backdrop-filter: blur(22px) saturate(150%);
+}
+
+@utility glass-strong {
+  background: rgb(18 20 23 / 0.72);
+  border: 1px solid rgb(255 255 255 / 0.11);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 14px 36px rgb(0 0 0 / 0.5);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  backdrop-filter: blur(26px) saturate(160%);
+}
+
+/* Números e títulos: letra condensada de painel de instrumentos. */
+@utility display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+@utility eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+@utility glow-text {
+  text-shadow: 0 0 22px rgb(42 245 179 / 0.35);
+}
+
+/* ---------- Estrutura e safe areas ---------- */
+
 .app-main {
-  padding-top: calc(var(--safe-top) + 0.5rem);
-  padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 1.5rem);
+  padding-top: calc(var(--safe-top) + 0.75rem);
+  padding-bottom: calc(var(--tabbar-h) + var(--tabbar-gap) + var(--safe-bottom) + 1.5rem);
   padding-left: max(1rem, var(--safe-left));
   padding-right: max(1rem, var(--safe-right));
 }
 
 .tabbar {
-  padding-bottom: var(--safe-bottom);
-  padding-left: var(--safe-left);
-  padding-right: var(--safe-right);
+  bottom: calc(var(--safe-bottom) + var(--tabbar-gap));
+  left: max(0.75rem, var(--safe-left));
+  right: max(0.75rem, var(--safe-right));
 }
 
 .sheet-safe {
@@ -111,32 +169,39 @@ dialog.sheet {
   max-height: calc(100dvh - var(--safe-top) - 1rem);
   width: 100%;
   max-width: 32rem;
-  border-radius: 1.25rem 1.25rem 0 0;
-  background: var(--card);
+  border-radius: 1.75rem 1.75rem 0 0;
+  background: rgb(20 22 25 / 0.82);
+  border: 0;
+  border-top: 1px solid rgb(255 255 255 / 0.12);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 -20px 50px rgb(0 0 0 / 0.5);
+  -webkit-backdrop-filter: blur(30px) saturate(160%);
+  backdrop-filter: blur(30px) saturate(160%);
   color: var(--fg);
   padding: 0;
-  border: 0;
   overscroll-behavior: contain;
 }
 
 @media (min-width: 640px) {
   dialog.sheet {
     margin: auto;
-    border-radius: 1.25rem;
+    border-radius: 1.75rem;
+    border: 1px solid rgb(255 255 255 / 0.12);
   }
 }
 
 dialog.sheet::backdrop {
-  background: rgb(0 0 0 / 0.4);
+  background: rgb(5 6 7 / 0.6);
 }
 
 dialog.sheet[open] {
-  animation: sheet-in 0.22s ease-out;
+  animation: sheet-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 @keyframes sheet-in {
   from {
-    transform: translateY(24px);
+    transform: translateY(28px);
     opacity: 0;
   }
   to {
@@ -145,13 +210,39 @@ dialog.sheet[open] {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  dialog.sheet[open] {
-    animation: none;
+/* Esqueletos de carregamento. */
+.skeleton {
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.04) 0%, rgb(255 255 255 / 0.09) 50%, rgb(255 255 255 / 0.04) 100%);
+  background-size: 200% 100%;
+  animation: skeleton 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
   }
 }
 
-/* Recompensa ao picar saída: curta e desligada com movimento reduzido. */
+/* Aviso "Anular" que sobe por cima da tab bar. */
+.toast-in {
+  animation: toast-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes toast-in {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Recompensa ao marcar um turno feito: curta. */
 .reward-pop {
   animation: reward-pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.25);
 }
@@ -168,7 +259,12 @@ dialog.sheet[open] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reward-pop {
+  dialog.sheet[open],
+  .reward-pop,
+  .toast-in {
+    animation: none;
+  }
+  .skeleton {
     animation: none;
   }
 }

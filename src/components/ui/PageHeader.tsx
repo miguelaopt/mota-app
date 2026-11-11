@@ -22,10 +22,10 @@ export function PageHeader({
         </Link>
       )}
       <div className="flex items-end justify-between gap-3">
-        <h1 className="text-[2rem] font-bold leading-tight tracking-tight">{title}</h1>
+        <h1 className="display text-[2.5rem]">{title}</h1>
         {action}
       </div>
-      {subtitle && <p className="mt-1 text-muted">{subtitle}</p>}
+      {subtitle && <p className="mt-1.5 text-sm text-muted">{subtitle}</p>}
     </header>
   );
 }

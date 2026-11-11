@@ -4,11 +4,11 @@ import { cn } from "@/lib/cn";
 export type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
 
 const tones: Record<Tone, string> = {
-  neutral: "bg-card-2 text-muted",
-  accent: "bg-accent-soft text-accent",
-  success: "bg-success-soft text-success",
-  warning: "bg-warning-soft text-warning",
-  danger: "bg-danger-soft text-danger",
+  neutral: "border border-glass-border bg-white/[0.05] text-muted",
+  accent: "border border-accent-line bg-accent-soft text-accent",
+  success: "border border-accent-line bg-success-soft text-success",
+  warning: "border border-warning/25 bg-warning-soft text-warning",
+  danger: "border border-danger/25 bg-danger-soft text-danger",
 };
 
 export function Badge({ tone = "neutral", children, className }: { tone?: Tone; children: ReactNode; className?: string }) {

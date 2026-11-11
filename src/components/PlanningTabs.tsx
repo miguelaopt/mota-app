@@ -10,15 +10,15 @@ const TABS = [
 /** Separadores da secção Planeamento (Equipamento e Custos). */
 export function PlanningTabs({ current }: { current: "/equipamento" | "/custos" }) {
   return (
-    <nav aria-label="Planeamento" className="mb-4 flex rounded-xl bg-card p-1">
+    <nav aria-label="Planeamento" className="glass mb-4 flex rounded-[18px] p-1">
       {TABS.map(({ href, label, icon: Icon }) => (
         <Link
           key={href}
           href={href}
           aria-current={href === current ? "page" : undefined}
           className={cn(
-            "flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-sm font-medium transition-colors",
-            href === current ? "bg-accent-soft text-accent" : "text-muted active:opacity-70",
+            "flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-[14px] px-2 py-2 text-sm font-medium transition-colors",
+            href === current ? "bg-accent text-accent-fg font-semibold" : "text-muted active:opacity-70",
           )}
         >
           <Icon size={18} />
