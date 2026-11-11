@@ -2,11 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CloseIcon } from "@/components/icons";
+import { CheckIcon, CloseIcon } from "@/components/icons";
+import { Button } from "@/components/ui/Button";
 import { Card, ListGroup, Section } from "@/components/ui/Card";
 import { Field, FormError, TextInput } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { useFormAction } from "@/components/ui/useFormAction";
+import { undoKey } from "@/components/undo/keys";
+import { formRunner, useUndo } from "@/components/undo/UndoProvider";
 import { deleteBreakAction, deleteShiftAction, updateShiftAction } from "../../actions";
 
 export interface BreakRow {
@@ -33,9 +36,11 @@ export function ShiftEditor({
   const router = useRouter();
   const [saved, setSaved] = useState(false);
   const edit = useFormAction(updateShiftAction, () => setSaved(true));
-  const remove = useFormAction(deleteShiftAction, () => router.push("/trabalho"), {
-    confirmMessage: "Apagar este turno? Esta ação não mexe no saldo das contas.",
-  });
+  const { remove } = useUndo();
+  const deleteShift = () => {
+    router.push("/trabalho");
+    remove({ label: "Turno apagado", keys: [undoKey.shift(id)], run: formRunner(deleteShiftAction, { id }) });
+  };
 
   return (
     <>
@@ -51,7 +56,13 @@ export function ShiftEditor({
             </Field>
             <FormError error={edit.error} />
             <SubmitButton pending={edit.pending} className="w-full">
-              {saved ? "Guardado ✓" : "Guardar horário"}
+              {saved ? (
+                <>
+                  <CheckIcon size={18} strokeWidth={2.6} /> Guardado
+                </>
+              ) : (
+                "Guardar horário"
+              )}
             </SubmitButton>
             <p className="px-1 text-xs text-muted">
               Corrigir muda a estimativa do turno. A poupança já confirmada nas contas não muda; a diferença fica assinalada.
@@ -71,13 +82,12 @@ export function ShiftEditor({
       )}
 
       {canDelete && (
-        <form {...remove.formProps} className="mt-6">
-          <input type="hidden" name="id" value={id} />
-          <FormError error={remove.error} />
-          <SubmitButton pending={remove.pending} variant="danger" className="w-full" pendingText="A apagar…">
+        <div className="mt-6">
+          <Button variant="danger" className="w-full" onClick={deleteShift}>
             Apagar turno
-          </SubmitButton>
-        </form>
+          </Button>
+          <p className="mt-2 px-1 text-center text-xs text-faint">Apagar um turno não mexe no saldo das contas.</p>
+        </div>
       )}
     </>
   );
@@ -86,14 +96,14 @@ export function ShiftEditor({
 function DeleteBreak({ row }: { row: BreakRow }) {
   const { pending, formProps } = useFormAction(deleteBreakAction, undefined, { confirmMessage: `Apagar a pausa ${row.label}?` });
   return (
-    <form {...formProps} className="flex items-center gap-3 py-3 pl-4 pr-2">
+    <form {...formProps} className="flex min-h-12 items-center gap-3 py-2 pl-4 pr-1.5">
       <input type="hidden" name="id" value={row.id} />
       <span className="flex-1 tabular-nums">{row.label}</span>
       <button
         type="submit"
         disabled={pending}
         aria-label={`Apagar pausa ${row.label}`}
-        className="rounded-full p-1.5 text-muted outline-none active:bg-card-2 focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"
+        className="flex h-11 w-9 items-center justify-center rounded-full text-faint outline-none active:text-fg focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-40"
       >
         <CloseIcon size={16} />
       </button>

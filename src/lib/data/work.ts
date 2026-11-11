@@ -101,30 +101,17 @@ type ShiftRow = {
   original_ended_at: string | null;
 };
 
-async function hydrate(db: Db, rows: ShiftRow[]): Promise<ShiftRecord[]> {
-  if (rows.length === 0) return [];
-  const ids = rows.map((r) => r.id);
-  // Em lotes, para o URL do pedido não ficar enorme.
-  const breaks: Array<{ id: string; shift_id: string; started_at: string; ended_at: string | null; paid: boolean }> = [];
-  const links: Array<{ shift_id: string; attribution_id: string }> = [];
-  for (let i = 0; i < ids.length; i += 200) {
-    const chunk = ids.slice(i, i + 200);
-    const [b, l] = await Promise.all([
-      db.from("shift_breaks").select("id, shift_id, started_at, ended_at, paid").in("shift_id", chunk).order("started_at"),
-      db.from("savings_attribution_shifts").select("shift_id, attribution_id").in("shift_id", chunk),
-    ]);
-    if (b.error) throw new Error(b.error.message);
-    if (l.error) throw new Error(l.error.message);
-    breaks.push(...b.data);
-    links.push(...l.data);
-  }
+type BreakRow = { id: string; shift_id: string; started_at: string; ended_at: string | null; paid: boolean };
+type LinkRow = { shift_id: string; attribution_id: string };
 
+function assemble(rows: ShiftRow[], breaks: BreakRow[], links: LinkRow[]): ShiftRecord[] {
   const breaksByShift = new Map<string, ShiftBreak[]>();
   for (const b of breaks) {
     const list = breaksByShift.get(b.shift_id) ?? [];
     list.push({ id: b.id, startedAt: Date.parse(b.started_at), endedAt: ms(b.ended_at), paid: b.paid });
     breaksByShift.set(b.shift_id, list);
   }
+  for (const list of breaksByShift.values()) list.sort((a, b) => a.startedAt - b.startedAt);
   const attributionByShift = new Map(links.map((l) => [l.shift_id, l.attribution_id]));
 
   return rows.map((row) => ({
@@ -147,11 +134,49 @@ async function hydrate(db: Db, rows: ShiftRow[]): Promise<ShiftRecord[]> {
   }));
 }
 
-/** Todos os turnos, do mais recente para o mais antigo. */
+/** Pausas e ligações só dos turnos indicados (para leituras pequenas). */
+async function hydrate(db: Db, rows: ShiftRow[]): Promise<ShiftRecord[]> {
+  if (rows.length === 0) return [];
+  const ids = rows.map((r) => r.id);
+  // Em lotes, para o URL do pedido não ficar enorme.
+  const breaks: BreakRow[] = [];
+  const links: LinkRow[] = [];
+  for (let i = 0; i < ids.length; i += 200) {
+    const chunk = ids.slice(i, i + 200);
+    const [b, l] = await Promise.all([
+      db.from("shift_breaks").select("id, shift_id, started_at, ended_at, paid").in("shift_id", chunk),
+      db.from("savings_attribution_shifts").select("shift_id, attribution_id").in("shift_id", chunk),
+    ]);
+    if (b.error) throw new Error(b.error.message);
+    if (l.error) throw new Error(l.error.message);
+    breaks.push(...b.data);
+    links.push(...l.data);
+  }
+  return assemble(rows, breaks, links);
+}
+
+/**
+ * Todos os turnos, do mais recente para o mais antigo. Turnos, pausas e ligações
+ * às confirmações são lidos ao mesmo tempo (uma só ida à base de dados).
+ */
 export async function getShifts(db: Db): Promise<ShiftRecord[]> {
-  const rows = await allPages<ShiftRow>((from, to) =>
-    db.from("shifts").select(SHIFT_COLUMNS).order("started_at", { ascending: false }).range(from, to),
-  );
+  const [rows, breaks, links] = await Promise.all([
+    allPages<ShiftRow>((from, to) => db.from("shifts").select(SHIFT_COLUMNS).order("started_at", { ascending: false }).range(from, to)),
+    allPages<BreakRow>((from, to) => db.from("shift_breaks").select("id, shift_id, started_at, ended_at, paid").order("id").range(from, to)),
+    allPages<LinkRow>((from, to) => db.from("savings_attribution_shifts").select("shift_id, attribution_id").order("shift_id").range(from, to)),
+  ]);
+  return assemble(rows, breaks, links);
+}
+
+/** Só os turnos indicados (ex.: os de uma confirmação), sem ler o histórico todo. */
+export async function getShiftsByIds(db: Db, ids: string[]): Promise<ShiftRecord[]> {
+  if (ids.length === 0) return [];
+  const rows: ShiftRow[] = [];
+  for (let i = 0; i < ids.length; i += 200) {
+    const { data, error } = await db.from("shifts").select(SHIFT_COLUMNS).in("id", ids.slice(i, i + 200));
+    if (error) throw new Error(error.message);
+    rows.push(...data);
+  }
   return hydrate(db, rows);
 }
 

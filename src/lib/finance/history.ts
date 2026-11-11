@@ -73,6 +73,28 @@ export function totalSeries(snapshots: BalanceSnapshot[]): SeriesPoint[] {
   return points;
 }
 
+/** Ponto do gráfico: instante (ms) e total que conta para a mota (cêntimos). */
+export interface EvolutionPoint {
+  t: number;
+  v: Cents;
+}
+
+/**
+ * Série para um intervalo do gráfico: começa com o valor que já havia no início
+ * do intervalo, inclui as atualizações dentro dele e acaba no valor de hoje.
+ * `days` null = desde o primeiro registo.
+ */
+export function seriesInRange(points: EvolutionPoint[], now: number, days: number | null): EvolutionPoint[] {
+  if (points.length === 0) return [];
+  const start = days == null ? points[0].t : now - days * DAY_MS;
+  const before = points.findLast((p) => p.t <= start);
+  const inside = points.filter((p) => p.t > start && p.t <= now);
+  const series = [...(before ? [{ t: start, v: before.v }] : []), ...inside];
+  const last = series[series.length - 1];
+  if (last && last.t < now) series.push({ t: now, v: last.v });
+  return series;
+}
+
 export interface SavingsRate {
   centsPerMonth: number;
   /** Dias de histórico usados no cálculo. */

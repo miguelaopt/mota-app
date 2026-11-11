@@ -24,24 +24,22 @@ export function TabBar() {
   const pathname = usePathname();
 
   return (
-    <nav
-      aria-label="Navegação principal"
-      className="tabbar fixed inset-x-0 bottom-0 z-40 border-t border-sep bg-card/85 backdrop-blur-xl backdrop-saturate-150"
-    >
-      <ul className="mx-auto flex h-[var(--tabbar-h)] max-w-lg">
+    <nav aria-label="Navegação principal" className="tabbar glass-strong fixed z-40 mx-auto max-w-lg rounded-[26px]">
+      <ul className="grid h-[var(--tabbar-h)] grid-cols-5">
         {TABS.map(({ href, label, icon: Icon, also }) => {
           const active = isActive(pathname, href, also);
           return (
-            <li key={href} className="flex-1">
+            <li key={href}>
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-full flex-col items-center justify-center gap-0.5 text-[0.65rem] font-medium transition-colors",
-                  active ? "text-accent" : "text-muted",
+                  "relative flex h-full flex-col items-center justify-center gap-0.5 text-[0.65rem] transition-colors",
+                  active ? "font-semibold text-accent" : "font-medium text-faint active:text-muted",
                 )}
               >
-                <Icon size={24} />
+                {active && <span className="absolute top-1.5 h-1 w-5 rounded-full bg-accent shadow-[0_0_10px_rgb(42_245_179/0.7)]" aria-hidden />}
+                <Icon size={23} />
                 {label}
               </Link>
             </li>

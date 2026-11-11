@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeSavingsRate, totalAt, totalSeries, type BalanceSnapshot } from "./history";
+import { computeSavingsRate, DAY_MS, seriesInRange, totalAt, totalSeries, type BalanceSnapshot } from "./history";
 
 const day = (iso: string) => new Date(`${iso}T12:00:00Z`);
 
@@ -110,5 +110,39 @@ describe("computeSavingsRate", () => {
     const snapshots = [snap("a", "2026-01-01", 100000), snap("a", "2026-03-02", 160000), snap("a", "2026-05-01", 999999)];
     const rate = computeSavingsRate(snapshots, day("2026-03-02"))!;
     expect(rate.centsPerMonth).toBeCloseTo(60000 / (60 / 30.4375), 6);
+  });
+});
+
+describe("seriesInRange", () => {
+  const now = Date.UTC(2026, 10, 11);
+  const points = [
+    { t: now - 200 * DAY_MS, v: 1000_00 },
+    { t: now - 100 * DAY_MS, v: 1500_00 },
+    { t: now - 10 * DAY_MS, v: 2450_00 },
+  ];
+
+  it("começa com o valor que havia no início do intervalo e acaba hoje", () => {
+    expect(seriesInRange(points, now, 182)).toEqual([
+      { t: now - 182 * DAY_MS, v: 1000_00 },
+      { t: now - 100 * DAY_MS, v: 1500_00 },
+      { t: now - 10 * DAY_MS, v: 2450_00 },
+      { t: now, v: 2450_00 },
+    ]);
+  });
+
+  it("intervalo sem atualizações: linha plana com o valor atual", () => {
+    expect(seriesInRange(points, now, 5)).toEqual([
+      { t: now - 5 * DAY_MS, v: 2450_00 },
+      { t: now, v: 2450_00 },
+    ]);
+  });
+
+  it("intervalo maior do que o histórico começa no primeiro registo", () => {
+    expect(seriesInRange(points, now, 365)[0]).toEqual(points[0]);
+    expect(seriesInRange(points, now, null)[0]).toEqual(points[0]);
+  });
+
+  it("sem pontos, sem série", () => {
+    expect(seriesInRange([], now, 91)).toEqual([]);
   });
 });

@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckIcon } from "@/components/icons";
 import { useState } from "react";
 import { Field, FormError, MoneyInput, TextArea, TextInput } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -23,7 +24,14 @@ export function MotorcycleForm({ motorcycle }: { motorcycle: MotorcycleFormValue
     <form {...formProps} onChange={() => setSaved(false)} className="space-y-4">
       {motorcycle && <input type="hidden" name="id" value={motorcycle.id} />}
       <Field label="Modelo" htmlFor="model">
-        <TextInput id="model" name="model" defaultValue={motorcycle?.model} placeholder="Ex.: Honda CB500 Hornet" maxLength={100} required />
+        <TextInput
+          id="model"
+          name="model"
+          defaultValue={motorcycle?.model}
+          placeholder="Ex.: Honda CB500 Hornet"
+          maxLength={100}
+          required
+        />
       </Field>
       <Field label="Preço" htmlFor="price">
         <MoneyInput id="price" name="price" defaultCents={motorcycle?.priceCents} required />
@@ -39,11 +47,25 @@ export function MotorcycleForm({ motorcycle }: { motorcycle: MotorcycleFormValue
         />
       </Field>
       <Field label="Notas" htmlFor="notes">
-        <TextArea id="notes" name="notes" defaultValue={motorcycle?.notes ?? ""} placeholder="Quilómetros, ano, estado, contacto…" maxLength={1000} />
+        <TextArea
+          id="notes"
+          name="notes"
+          defaultValue={motorcycle?.notes ?? ""}
+          placeholder="Quilómetros, ano, estado, contacto…"
+          maxLength={1000}
+        />
       </Field>
       <FormError error={error} />
       <SubmitButton pending={pending} size="lg" className="w-full">
-        {saved ? "Guardado ✓" : motorcycle ? "Guardar" : "Adicionar mota"}
+        {saved ? (
+          <>
+            <CheckIcon size={18} strokeWidth={2.6} /> Guardado
+          </>
+        ) : motorcycle ? (
+          "Guardar"
+        ) : (
+          "Adicionar mota"
+        )}
       </SubmitButton>
     </form>
   );

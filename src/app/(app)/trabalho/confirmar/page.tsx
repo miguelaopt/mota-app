@@ -2,22 +2,17 @@ import { randomUUID } from "node:crypto";
 import type { Metadata } from "next";
 import { Card, ListGroup, Section } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ReceivePaymentForm } from "@/components/work/ReceivePaymentForm";
 import { requireSession } from "@/lib/auth";
 import { getAccounts } from "@/lib/data/accounts";
 import { getSnapshots } from "@/lib/data/snapshots";
 import { getAttributions, getShifts } from "@/lib/data/work";
-import { formatShortDate, formatTime } from "@/lib/dates";
-import { DAY_MS } from "@/lib/finance/history";
+import { formatShortDate } from "@/lib/dates";
 import { formatEur } from "@/lib/finance/money";
-import { formatHm } from "@/lib/work/format";
-import { estimateShift } from "@/lib/work/shift";
-import { ConfirmSavingsForm, type AccountOption, type PendingShiftRow } from "./ConfirmSavingsForm";
+import { buildConfirmData } from "@/lib/work/confirm";
 import { UndoAttributionButton } from "./UndoAttributionButton";
 
-export const metadata: Metadata = { title: "Confirmar poupança" };
-
-/** Atualizações de saldo mais antigas do que isto não aparecem para ligar. */
-const RECENT_DAYS = 60;
+export const metadata: Metadata = { title: "Recebi o pagamento" };
 
 export default async function ConfirmSavingsPage() {
   const { supabase } = await requireSession();
@@ -28,55 +23,19 @@ export default async function ConfirmSavingsPage() {
     getSnapshots(supabase),
     getAttributions(supabase),
   ]);
-
-  const pending: PendingShiftRow[] = shifts
-    .filter((s) => s.endedAt != null && s.attributionId == null)
-    .map((s) => {
-      const e = estimateShift(s, s.endedAt!);
-      return {
-        id: s.id,
-        label: `${formatShortDate(new Date(s.startedAt), now)} · ${formatHm(e.paidMs)}`,
-        plannedCents: e.plannedCents,
-      };
-    });
-
-  // Aumento de cada atualização de saldo face à anterior da mesma conta,
-  // menos o que já foi atribuído ao trabalho.
-  const attributedBySnapshot = new Map<number, number>();
-  for (const a of attributions) {
-    if (a.snapshotId != null) attributedBySnapshot.set(a.snapshotId, (attributedBySnapshot.get(a.snapshotId) ?? 0) + a.amountCents);
-  }
-  const previous = new Map<string, number>();
-  const increases = new Map<string, AccountOption["increases"]>();
-  for (const snap of snapshots) {
-    const before = previous.get(snap.accountId) ?? 0;
-    previous.set(snap.accountId, snap.balanceCents);
-    const available = snap.balanceCents - before - (attributedBySnapshot.get(snap.id) ?? 0);
-    if (available <= 0 || now.getTime() - snap.recordedAt.getTime() > RECENT_DAYS * DAY_MS) continue;
-    const list = increases.get(snap.accountId) ?? [];
-    list.unshift({
-      snapshotId: snap.id,
-      availableCents: available,
-      label: `${formatShortDate(snap.recordedAt, now)}, ${formatTime(snap.recordedAt)} · ${formatEur(snap.balanceCents - before, { signed: true })} (${formatEur(available)} por atribuir)`,
-    });
-    increases.set(snap.accountId, list);
-  }
-
-  const options: AccountOption[] = accounts
-    .filter((a) => !a.archived)
-    .map((a) => ({ id: a.id, name: a.name, balanceCents: a.balanceCents, increases: (increases.get(a.id) ?? []).slice(0, 10) }));
+  const data = buildConfirmData({ shifts, accounts, snapshots, attributions, now });
   const names = new Map(accounts.map((a) => [a.id, a.name]));
 
   return (
     <>
       <PageHeader
-        title="Confirmar poupança"
+        title="Recebi o pagamento"
         back={{ href: "/trabalho", label: "Trabalho" }}
-        subtitle="Quando receberes e guardares, regista quanto foi e onde. Só assim o planeado passa a dinheiro contabilizado."
+        subtitle="Quando o dinheiro do trabalho entrar numa conta, regista aqui quanto foi. Só assim o planeado passa a dinheiro contabilizado."
       />
 
-      <Card>
-        <ConfirmSavingsForm attributionId={randomUUID()} shifts={pending} accounts={options} />
+      <Card className="p-5">
+        <ReceivePaymentForm data={data} attributionId={randomUUID()} renderedAt={now.getTime()} redirectTo="/trabalho" />
       </Card>
 
       {attributions.length > 0 && (

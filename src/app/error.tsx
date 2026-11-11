@@ -11,8 +11,8 @@ export default function ErrorPage({ error, retry }: { error: Error & { digest?: 
 
   return (
     <main className="app-main mx-auto flex min-h-dvh max-w-lg flex-col justify-center">
-      <div className="rounded-2xl bg-card p-5">
-        <h1 className="text-2xl font-bold">Algo correu mal</h1>
+      <div className="glass rounded-[24px] p-5">
+        <h1 className="display text-[2rem]">Algo correu mal</h1>
         <p className="mt-2 text-muted">
           Não foi possível carregar esta página. Verifica a ligação à internet e tenta outra vez. Se continuar, confirma no painel do
           Supabase que o projeto está ativo (os projetos gratuitos são pausados ao fim de 7 dias sem uso).

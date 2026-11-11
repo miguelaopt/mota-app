@@ -18,8 +18,8 @@ import { useNow, useWorkClock } from "./useWorkClock";
 export function WorkHomeCard({ data, model }: { data: WorkClientData | null; model: string }) {
   if (!data) {
     return (
-      <Card className="mt-4 flex items-center gap-4 p-4">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent">
+      <Card className="mt-3 flex items-center gap-4 p-4">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-accent-line bg-accent-soft text-accent">
           <BriefcaseIcon size={24} />
         </span>
         <div className="min-w-0 flex-1">
@@ -44,16 +44,16 @@ function ConfiguredCard({ data }: { data: WorkClientData }) {
     const e = estimateShift({ ...active, endedAt: null }, now);
     const onBreak = e.openBreak;
     return (
-      <Card className="mt-4 p-4">
+      <Card className="mt-3 p-4">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm font-medium text-accent">
+          <p className="eyebrow text-accent">
             {onBreak ? (onBreak.paid ? "Em pausa remunerada" : "Em pausa não remunerada") : "Turno a decorrer"}
           </p>
           <p className="text-sm text-muted tabular-nums">entrada {formatTime(active.startedAt)}</p>
         </div>
         <div className="mt-1 flex items-end justify-between gap-3">
           <div>
-            <p className="text-2xl font-bold tabular-nums" role="timer">
+            <p className="display mt-1 text-[2.25rem]" role="timer">
               {formatClock(e.paidMs)}
             </p>
             <p className="text-sm text-muted tabular-nums">
@@ -94,20 +94,11 @@ function ConfiguredCard({ data }: { data: WorkClientData }) {
   return <WorkToday data={data} onHome />;
 }
 
-/** Linha do resumo financeiro: planeado neste turno / por confirmar, sempre separado do saldo real. */
+/** Quanto o turno a decorrer já planeou para a mota (o "por confirmar" tem o seu próprio aviso). */
 export function WorkProjectionLine({ data }: { data: WorkClientData }) {
   const clock = useWorkClock({ userId: data.userId, serverActive: data.activeShift, renderedAt: data.renderedAt });
   const now = useNow(clock.active != null, data.renderedAt, 5000);
   const live = clock.active ? estimateShift({ ...clock.active, endedAt: null }, now).plannedCents : 0;
-  if (live <= 0 && data.pendingPlannedCents <= 0) return null;
-  return (
-    <div className="mt-1 space-y-0.5 text-sm tabular-nums">
-      {live > 0 && <p className="font-medium text-accent">+{formatEur(live)} planeados neste turno</p>}
-      {data.pendingPlannedCents > 0 && (
-        <p className="text-muted">
-          <span className="font-medium text-fg">{formatEur(data.pendingPlannedCents)}</span> planeados por confirmar (projeção)
-        </p>
-      )}
-    </div>
-  );
+  if (live <= 0) return null;
+  return <p className="mt-2 text-sm font-medium text-accent tabular-nums">+{formatEur(live)} planeados neste turno</p>;
 }

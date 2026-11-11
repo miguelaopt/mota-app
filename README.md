@@ -1,20 +1,22 @@
-# Mota 🏍️
+# Mota
 
 PWA pessoal para acompanhar a poupança para comprar uma mota. Funciona no iPhone (instalada no ecrã principal) e no browser do computador.
 
 > **Para pôr a app a funcionar, segue o [GUIA-DE-ARRANQUE.md](GUIA-DE-ARRANQUE.md)** (passo a passo, com verificações e problemas comuns).
 
-**Stack:** Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Supabase (auth por email + Postgres com RLS + Storage) · Serwist (service worker) · Vitest · Vercel.
+**Stack:** Next.js 16 (App Router) · TypeScript · Tailwind CSS v4 · Supabase (auth por email + Postgres com RLS + Storage) · Serwist (service worker) · Recharts · Vitest · Vercel (Londres).
+
+**Design "onyx & jade":** tema escuro fixo, vidro fosco, jade néon só onde há leitura (valores, progresso, LED da mota) e números em Barlow Condensed. Os tokens estão em `src/app/globals.css`.
 
 ## Ecrãs
 
 | Ecrã | O que faz |
 |---|---|
-| **Início** | Foto da mota, bloco do trabalho (próximo turno, turno ativo, último turno), progresso total/meta com %, valor em falta, data prevista, mínimo para andar vs setup completo |
-| **Trabalho** | Picar entrada/saída, pausas, turno em curso, recompensa, horas e turnos em falta, próximos turnos, confirmar poupança, estatísticas |
-| **Contas** | Saldos (atualização rápida), disponível vs investido, % que conta e margem de segurança |
+| **Início** | A mota (foto ou ilustração da Z400), progresso total/meta com %, legenda guardado · por confirmar · mínimo, falta e previsão, aviso "por confirmar" com **Recebi**, turno de hoje, mínimo vs setup completo |
+| **Trabalho** | Aviso "por confirmar" com **Recebi**, turno de hoje com contagem decrescente e "Turno feito", calendário com resumo do mês, picar entrada/saída, horas e turnos em falta, estatísticas |
+| **Contas** | Saldos (o novo valor aparece logo, sem esperar pelo servidor), disponível vs investido, % que conta e margem de segurança |
 | **Planeamento** | Separadores **Equipamento** (itens por comprar/comprados, categorias, prioridades, totais) e **Custos** (da compra, que contam para a meta, e mensais, informativos) |
-| **Histórico** | Atualizações de saldo, turnos e poupança confirmada, por dia, com filtros Tudo · Contas · Trabalho · Poupança |
+| **Histórico** | Gráfico da evolução (3 meses · 6 meses · 1 ano · tudo, com tabela), atualizações de saldo, turnos e poupança confirmada, por dia, com filtros Tudo · Contas · Trabalho · Poupança |
 | Mota / Definições | Acessíveis a partir do Início (foto e preço da mota; meta mensal, terminar sessão) |
 | Definições do trabalho | Acessíveis a partir do Trabalho (valor/hora ou salário fixo, % para a mota, meta de referência, pausas) |
 
@@ -36,16 +38,18 @@ Lógica em `src/lib/work` (funções puras, com testes). A regra central: **ganh
 - **Tempo pago** = (saída ou agora) − entrada − pausas não remuneradas. Tudo é calculado a partir dos instantes guardados; o timer do ecrã só redesenha.
 - **Ganhos estimados** = round(tempo pago × valor/hora) e **planeado** = round(ganhos × % para a mota). Montantes em cêntimos, percentagens em pontos base, arredondados só no fim.
 - Ao picar entrada, o turno guarda uma cópia do valor/hora, da % e da meta: mudar as definições não altera turnos antigos.
-- **Terminar um turno nunca altera o saldo.** A poupança só conta quando é confirmada: em *Confirmar poupança* atualizas o saldo de uma conta (ou escolhes uma atualização já feita) e indicas que parte veio do trabalho. Essa atribuição só classifica o aumento e nunca pode ser maior do que ele, por isso o dinheiro não entra duas vezes (função `confirm_work_savings`).
+- **Terminar um turno nunca altera o saldo.** A poupança só conta quando é confirmada: em *Recebi o pagamento* (no Início, no Trabalho ou em `/trabalho/confirmar`) atualizas o saldo de uma conta (ou escolhes uma atualização já feita) e indicas que parte veio do trabalho. Essa atribuição só classifica o aumento e nunca pode ser maior do que ele, por isso o dinheiro não entra duas vezes (função `confirm_work_savings`).
 - **Horas em falta** = em falta ÷ (valor/hora × %). **Turnos equivalentes** = horas ÷ duração de referência (a definida, ou a média dos teus turnos).
 - A data prevista do Início (ritmo real ou meta mensal) mantém-se. O Trabalho mostra à parte um mês aproximado com os turnos por semana definidos, sem lhe somar a meta mensal.
+- **"Turno feito"** regista o turno do calendário numa só chamada (`complete_scheduled_shift`): idempotente, liga-se a um turno já picado à mesma hora em vez de o contar duas vezes, e volta a registar um dia apagado.
+- **Anular:** apagar um turno, um dia do calendário, uma conta, um item, um custo ou um registo do histórico esconde-o logo e só o apaga no servidor 5 segundos depois, se não tocares em "Anular" (`src/components/undo`).
 - **Offline:** picar entrada, pausas e saída ficam guardados no telemóvel (localStorage) e são enviados por ordem quando houver rede. Cada operação tem ids gerados no telemóvel, por isso um duplo toque ou um reenvio não cria registos duplicados. Só há um turno ativo de cada vez, e os turnos não se podem sobrepor.
 
 ---
 
 ## 1. Configurar o Supabase
 
-1. Cria um projeto em [supabase.com](https://supabase.com) (região `West EU` / `Frankfurt` para ficar perto).
+1. Cria um projeto em [supabase.com](https://supabase.com) na região `West EU (London)`, a mesma das funções da Vercel (`vercel.json`).
 2. **Base de dados.** No painel, abre **SQL Editor** e corre, por esta ordem, o conteúdo de cada ficheiro de `supabase/migrations/`:
    1. `20260927000001_schema.sql`: tabelas, índices e triggers
    2. `20260927000002_rls.sql`: Row Level Security
@@ -53,6 +57,7 @@ Lógica em `src/lib/work` (funções puras, com testes). A regra central: **ganh
    4. `20260927000004_new_user_seed.sql`: dados iniciais de cada utilizador
    5. `20260927000005_storage.sql`: bucket privado `photos`
    6. `20261008000001_work_mode.sql`: modo Trabalho (só acrescenta tabelas; o rollback está no topo do ficheiro)
+   7. `20261111000001_complete_shift.sql`: "Turno feito" atómico (só acrescenta uma função)
 
    Em alternativa, com a CLI: `npx supabase init` (se ainda não existir `supabase/config.toml`), `npx supabase link --project-ref <ref>` e `npx supabase db push`.
 3. **Auth → URL Configuration**
@@ -145,10 +150,10 @@ src/
     finance/             cálculos puros + testes
     data/                queries ao Supabase (convertem euros → cêntimos)
     supabase/            clientes (servidor/browser) e tipos da BD
-scripts/                 geração dos ícones (node scripts/generate-icons.mjs)
+scripts/                 ícones e ilustração (node scripts/generate-icons.mjs)
 ```
 
-Os ícones são provisórios. Para os trocar, edita `scripts/icon.svg` e corre `node scripts/generate-icons.mjs`.
+O ícone e a ilustração do Início vêm de `scripts/z400.svg` (uma naked de 400 cc desenhada para a app). Para os mudar, edita esse ficheiro ou `scripts/generate-icons.mjs` e corre `node scripts/generate-icons.mjs`.
 
 ## Modo Trabalho: próximas fases
 
@@ -161,7 +166,6 @@ Os ícones são provisórios. Para os trocar, edita `scripts/icon.svg` e corre `
 
 | Funcionalidade | O que já existe |
 |---|---|
-| Gráfico da evolução | `balance_snapshots` + `totalSeries()` em `lib/finance/history.ts`; Recharts instalado |
 | Marcos 25/50/75/100% | derivam da mesma série e da percentagem |
 | Mensagens "já tens o equivalente a…" | `gear_items` com preços e prioridades |
 | Streak da meta mensal | série mensal a partir do histórico + `settings.monthly_goal` |

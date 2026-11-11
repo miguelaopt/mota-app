@@ -33,3 +33,13 @@ export function formatBp(bp: number): string {
   const pct = bp / 100;
   return `${Number.isInteger(pct) ? pct : pct.toFixed(2).replace(/0+$/, "").replace(".", ",")}%`;
 }
+
+/** Tempo até começar: "5 h 21 min", "21 min", "agora". */
+export function formatCountdown(ms: number): string {
+  const totalMinutes = Math.ceil(Math.max(0, ms) / MINUTE_MS);
+  if (totalMinutes <= 0) return "agora";
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h === 0) return `${m} min`;
+  return m === 0 ? `${h} h` : `${h} h ${m} min`;
+}

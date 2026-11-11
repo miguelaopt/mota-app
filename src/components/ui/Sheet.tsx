@@ -36,10 +36,10 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
     >
       {open && (
         <div className="sheet-safe px-4 pt-2.5">
-          <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-track sm:hidden" aria-hidden />
+          <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-white/20 sm:hidden" aria-hidden />
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold">{title}</h2>
-            <button type="button" onClick={onClose} aria-label="Fechar" className="rounded-full bg-card-2 p-1.5 text-muted active:opacity-60">
+            <h2 className="display text-[1.75rem]">{title}</h2>
+            <button type="button" onClick={onClose} aria-label="Fechar" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-muted active:opacity-60">
               <CloseIcon size={18} />
             </button>
           </div>

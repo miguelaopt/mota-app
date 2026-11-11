@@ -1,0 +1,230 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760">
+  <!--
+    Naked bike ao estilo Kawasaki Z400 (vista lateral, frente à direita), fundo transparente.
+    Proporções a partir das medidas reais: entre-eixos 1370 mm, rodas 17", banco a 785 mm,
+    altura total 1055 mm (≈ 0,427 px/mm; chão em y = 688).
+  -->
+  <defs>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#565c64"/>
+      <stop offset="0.12" stop-color="#2b2f34"/>
+      <stop offset="0.55" stop-color="#141518"/>
+      <stop offset="1" stop-color="#08090a"/>
+    </linearGradient>
+    <linearGradient id="glossSide" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#363a40"/>
+      <stop offset="0.45" stop-color="#17191c"/>
+      <stop offset="1" stop-color="#090a0b"/>
+    </linearGradient>
+    <linearGradient id="chrome" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4f555c"/>
+      <stop offset="0.28" stop-color="#eef2f5"/>
+      <stop offset="0.5" stop-color="#8e949b"/>
+      <stop offset="0.78" stop-color="#d9dee2"/>
+      <stop offset="1" stop-color="#454a50"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a7adb3"/>
+      <stop offset="0.5" stop-color="#4f545a"/>
+      <stop offset="1" stop-color="#1c1f22"/>
+    </linearGradient>
+    <linearGradient id="engine" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2c3035"/>
+      <stop offset="1" stop-color="#0e0f11"/>
+    </linearGradient>
+    <linearGradient id="jade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#14c98d"/>
+      <stop offset="1" stop-color="#5dffc9"/>
+    </linearGradient>
+    <linearGradient id="seat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#34373b"/>
+      <stop offset="0.4" stop-color="#1a1c1e"/>
+      <stop offset="1" stop-color="#0b0c0d"/>
+    </linearGradient>
+    <linearGradient id="muffler" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7c838a"/>
+      <stop offset="0.3" stop-color="#2d3034"/>
+      <stop offset="1" stop-color="#0b0c0d"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="0.35" stop-color="#e9eef2" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="tire" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0.74" stop-color="#050506"/>
+      <stop offset="0.87" stop-color="#1d1f22"/>
+      <stop offset="0.95" stop-color="#0f1012"/>
+      <stop offset="1" stop-color="#040405"/>
+    </radialGradient>
+    <radialGradient id="disc" cx="0.4" cy="0.35" r="0.7">
+      <stop offset="0" stop-color="#f1f4f6"/>
+      <stop offset="1" stop-color="#666c72"/>
+    </radialGradient>
+    <radialGradient id="shadow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#000" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="spec" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="soft"><feGaussianBlur stdDeviation="3"/></filter>
+    <g id="wheel">
+      <circle r="128" fill="url(#tire)"/>
+      <circle r="99" fill="#0a0b0c"/>
+      <circle r="99" fill="none" stroke="#33373c" stroke-width="5"/>
+      <circle r="92" fill="none" stroke="#2af5b3" stroke-width="2.5"/>
+      <g stroke="#26292d" stroke-width="8" stroke-linecap="round">
+        <path d="M0 -22 L-10 -90 M0 -22 L10 -90"/>
+        <path d="M0 -22 L-10 -90 M0 -22 L10 -90" transform="rotate(72)"/>
+        <path d="M0 -22 L-10 -90 M0 -22 L10 -90" transform="rotate(144)"/>
+        <path d="M0 -22 L-10 -90 M0 -22 L10 -90" transform="rotate(216)"/>
+        <path d="M0 -22 L-10 -90 M0 -22 L10 -90" transform="rotate(288)"/>
+      </g>
+      <g stroke="#6b7178" stroke-width="2" stroke-linecap="round" opacity="0.75">
+        <path d="M-3 -26 L-11 -86"/>
+        <path d="M-3 -26 L-11 -86" transform="rotate(72)"/>
+        <path d="M-3 -26 L-11 -86" transform="rotate(144)"/>
+        <path d="M-3 -26 L-11 -86" transform="rotate(216)"/>
+        <path d="M-3 -26 L-11 -86" transform="rotate(288)"/>
+      </g>
+      <circle r="24" fill="url(#metal)"/>
+      <circle r="9" fill="#0a0b0c"/>
+      <path d="M-100 -76 A126 126 0 0 1 -26 -123" fill="none" stroke="#4a4f55" stroke-width="5" stroke-linecap="round"/>
+      <path d="M-92 -70 A118 118 0 0 1 -40 -110" fill="none" stroke="#7d848b" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
+    </g>
+  </defs>
+
+  <!-- sombra no chão -->
+  <ellipse cx="602" cy="692" rx="480" ry="24" fill="url(#shadow)"/>
+
+  <!-- lado de lá (profundidade): perna do garfo e poisa-pés -->
+  <path d="M770 312 L884 556" stroke="#121315" stroke-width="22" stroke-linecap="round"/>
+  <path d="M500 590 L470 596" stroke="#2a2d31" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- roda traseira -->
+  <use href="#wheel" x="300" y="560"/>
+  <circle cx="300" cy="560" r="54" fill="none" stroke="url(#disc)" stroke-width="10" opacity="0.9"/>
+  <circle cx="300" cy="560" r="44" fill="none" stroke="#2f3337" stroke-width="7"/>
+
+  <!-- corrente -->
+  <path d="M556 512 L300 516 M556 548 L300 604" stroke="#3a3e43" stroke-width="5" fill="none"/>
+
+  <!-- braço oscilante -->
+  <path d="M548 512 L314 540 Q296 544 296 558 L299 574 Q303 584 317 582 L552 548 Z" fill="url(#glossSide)" stroke="#33373c" stroke-width="2"/>
+  <path d="M540 516 L318 544" stroke="url(#rim)" stroke-width="2"/>
+
+  <!-- amortecedor traseiro (mola jade, entre o quadro e o braço) -->
+  <path d="M500 400 L524 510" stroke="#17191c" stroke-width="18" stroke-linecap="round"/>
+  <path d="M500 418 l26 -6 M503 431 l26 -6 M506 444 l26 -6 M509 457 l26 -6 M512 470 l26 -6 M515 483 l26 -6" stroke="#2af5b3" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- quadro tubular (treliça) -->
+  <g stroke="#17191c" stroke-width="13" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M782 322 L620 372 L552 520"/>
+    <path d="M782 340 L716 470 L620 372"/>
+    <path d="M716 470 L574 520"/>
+  </g>
+  <g stroke="#6b7178" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.8">
+    <path d="M782 316 L620 366 L548 514"/>
+    <path d="M780 334 L714 462"/>
+  </g>
+
+  <!-- motor bicilíndrico -->
+  <path d="M590 430 L724 404 L770 470 L756 560 L712 604 L620 616 L576 574 Z" fill="url(#engine)" stroke="#2c3035" stroke-width="2"/>
+  <path d="M652 412 L738 398 L766 446 L672 462 Z" fill="#202327"/>
+  <g stroke="#5b6168" stroke-width="3" stroke-linecap="round">
+    <path d="M660 422 L742 408"/><path d="M664 434 L748 420"/><path d="M668 446 L754 432"/>
+  </g>
+  <path d="M600 438 L716 416" stroke="url(#rim)" stroke-width="2"/>
+  <circle cx="640" cy="532" r="42" fill="url(#metal)" stroke="#121315" stroke-width="3"/>
+  <circle cx="640" cy="532" r="27" fill="none" stroke="#2c3035" stroke-width="3"/>
+  <ellipse cx="626" cy="514" rx="16" ry="7" fill="url(#spec)"/>
+  <g fill="#121315"><circle cx="640" cy="495" r="3.5"/><circle cx="675" cy="524" r="3.5"/><circle cx="662" cy="564" r="3.5"/><circle cx="618" cy="564" r="3.5"/><circle cx="605" cy="524" r="3.5"/></g>
+  <circle cx="576" cy="534" r="19" fill="#17191c" stroke="#4f545a" stroke-width="3"/>
+
+  <!-- coletor e escape curto (por baixo, lado direito) -->
+  <path d="M758 448 Q796 500 768 574 Q748 614 680 622" fill="none" stroke="#2c3035" stroke-width="15" stroke-linecap="round"/>
+  <path d="M760 452 Q792 500 768 566" fill="none" stroke="#7d848b" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+  <path d="M690 612 L548 600 Q524 600 520 616 L522 632 Q526 648 548 646 L690 640 Q706 638 706 624 Z" fill="url(#muffler)"/>
+  <path d="M556 604 L686 614" stroke="url(#rim)" stroke-width="2"/>
+  <path d="M520 612 L508 618 L510 640 L524 640 Z" fill="#a7adb3"/>
+  <!-- proteção inferior -->
+  <path d="M612 618 L732 600 L722 628 L632 638 Z" fill="url(#glossSide)" stroke="#2c3035" stroke-width="1.5"/>
+
+  <!-- poisa-pés -->
+  <path d="M548 600 L578 608" stroke="#9aa0a6" stroke-width="8" stroke-linecap="round"/>
+  <path d="M532 548 L556 600" stroke="#1d1f22" stroke-width="9" stroke-linecap="round"/>
+
+  <!-- traseira: carenagem em cunha, luz LED, suporte de matrícula curto -->
+  <path d="M250 300 L330 322 L440 342 L470 360 L452 388 L380 380 L318 352 L262 318 Z" fill="url(#gloss)" stroke="#2c3035" stroke-width="2"/>
+  <path d="M252 301 L330 323 L440 343" stroke="url(#rim)" stroke-width="2.5" fill="none"/>
+  <path d="M246 298 L266 304 L262 318 L248 312 Z" fill="#ff3b47"/>
+  <path d="M300 356 L280 420" stroke="#17191c" stroke-width="10" stroke-linecap="round"/>
+  <rect x="252" y="416" width="46" height="30" rx="3" fill="#121315" stroke="#3a3e43" stroke-width="2" transform="rotate(-10 275 431)"/>
+  <path d="M282 412 L262 414" stroke="#f5a524" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- bancos -->
+  <path d="M328 318 Q370 308 430 318 L436 336 L336 328 Z" fill="url(#seat)"/>
+  <path d="M436 330 Q500 332 572 344 L572 362 Q500 362 440 352 Z" fill="url(#seat)"/>
+  <path d="M440 332 Q500 334 570 346" stroke="#55595f" stroke-width="1.5" fill="none" opacity="0.7"/>
+
+  <!-- tampa lateral com friso jade -->
+  <path d="M448 356 L572 366 L556 414 L470 402 Z" fill="url(#glossSide)" stroke="#2c3035" stroke-width="2"/>
+  <path d="M478 394 L548 402" stroke="#2af5b3" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- depósito -->
+  <path d="M566 344 L620 300 L712 290 L778 318 L770 358 L716 370 L626 384 L572 368 Z" fill="url(#gloss)" stroke="#2c3035" stroke-width="2"/>
+  <path d="M580 340 L624 306 L710 297 L772 322" stroke="url(#rim)" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  <ellipse cx="672" cy="316" rx="46" ry="9" transform="rotate(-6 672 316)" fill="url(#spec)"/>
+
+  <!-- aba lateral (shroud) com grafismo jade em cunha -->
+  <path d="M704 330 L800 334 L812 368 L790 432 L740 480 L716 452 L694 392 Z" fill="url(#glossSide)" stroke="#2c3035" stroke-width="2"/>
+  <path d="M714 344 L794 346 L780 382 Z" fill="#0d0e10"/>
+  <path d="M722 400 L796 362 L772 412 Z" fill="url(#jade)"/>
+  <path d="M706 334 L800 337" stroke="url(#rim)" stroke-width="2.5"/>
+  <!-- radiador -->
+  <path d="M788 396 L812 400 L800 470 L776 466 Z" fill="#141518" stroke="#2c3035" stroke-width="1.5"/>
+  <g stroke="#2a2d31" stroke-width="1.5"><path d="M790 410 L808 412"/><path d="M788 422 L806 424"/><path d="M786 434 L804 436"/><path d="M784 446 L802 448"/></g>
+
+  <!-- suspensão dianteira (lado de cá) -->
+  <path d="M792 306 L848 448" stroke="url(#chrome)" stroke-width="20" stroke-linecap="round"/>
+  <path d="M844 436 L902 556" stroke="#141518" stroke-width="30" stroke-linecap="round"/>
+  <path d="M842 446 L894 548" stroke="#3a3e43" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- roda dianteira, disco em pétala e pinça -->
+  <use href="#wheel" x="905" y="560"/>
+  <circle cx="905" cy="560" r="73" fill="none" stroke="url(#disc)" stroke-width="16"/>
+  <circle cx="905" cy="560" r="81" fill="none" stroke="#7d848b" stroke-width="2" stroke-dasharray="14 9"/>
+  <g fill="#3a3e43">
+    <circle cx="905" cy="487" r="3"/><circle cx="974" cy="537" r="3"/><circle cx="948" cy="619" r="3"/><circle cx="862" cy="619" r="3"/><circle cx="836" cy="537" r="3"/>
+    <circle cx="945" cy="499" r="3"/><circle cx="978" cy="584" r="3"/><circle cx="905" cy="633" r="3"/><circle cx="832" cy="584" r="3"/><circle cx="865" cy="499" r="3"/>
+  </g>
+  <path d="M848 502 Q866 484 892 481 L896 508 Q878 512 866 524 Z" fill="#17191c" stroke="#5b6168" stroke-width="2"/>
+
+  <!-- guarda-lamas dianteiro -->
+  <path d="M834 452 Q904 406 996 446 L988 458 Q904 426 842 464 Z" fill="url(#gloss)" stroke="#2c3035" stroke-width="1.5"/>
+  <path d="M846 448 Q904 414 984 444" stroke="url(#rim)" stroke-width="2" fill="none"/>
+
+  <!-- frente: farol em cunha com LED jade e pequeno ecrã -->
+  <g transform="translate(-30 6)">
+  <path d="M800 318 L888 324 L934 352 L918 372 L858 392 L818 368 Z" fill="url(#gloss)" stroke="#2c3035" stroke-width="2"/>
+  <path d="M806 318 L886 324 L930 350" stroke="url(#rim)" stroke-width="2.5" fill="none"/>
+  <path d="M812 316 L870 318 L860 300 L822 300 Z" fill="#17191c" stroke="#3a3e43" stroke-width="1.5"/>
+  <g filter="url(#glow)">
+    <path d="M884 350 L926 356 L912 368" stroke="#2af5b3" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M872 368 L902 372" stroke="#2af5b3" stroke-width="3.5" stroke-linecap="round"/>
+  </g>
+  </g>
+
+  <!-- guiador, manete e espelho -->
+  <path d="M760 292 L812 284" stroke="#17191c" stroke-width="10" stroke-linecap="round"/>
+  <path d="M752 294 L774 291" stroke="#3a3e43" stroke-width="14" stroke-linecap="round"/>
+  <path d="M800 288 L828 296" stroke="#5b6168" stroke-width="3" stroke-linecap="round"/>
+  <path d="M790 286 L782 246" stroke="#17191c" stroke-width="5" stroke-linecap="round"/>
+  <path d="M752 236 Q776 222 806 232 Q796 248 768 248 Z" fill="url(#gloss)" stroke="#3a3e43" stroke-width="1.5"/>
+</svg>

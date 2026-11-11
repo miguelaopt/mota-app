@@ -1,7 +1,7 @@
 "use server";
 
 import type { ActionResult } from "@/lib/action-result";
-import { PHOTOS_BUCKET } from "@/lib/data/photos";
+import { forgetPhotoUrl, PHOTOS_BUCKET } from "@/lib/data/photos";
 import { GEAR_CATEGORIES, ITEM_PRIORITIES } from "@/lib/finance/goal";
 import { getEnum, getId, getMoney, getRequiredText, getText, getUrl } from "@/lib/forms";
 import { check, runAction } from "@/lib/server-action";
@@ -68,6 +68,9 @@ export async function deleteGearItemAction(_prev: ActionResult, form: FormData):
     const id = getId(form);
     const { data } = await supabase.from("gear_items").select("photo_path").eq("id", id).maybeSingle();
     check(await supabase.from("gear_items").delete().eq("id", id));
-    if (data?.photo_path) await supabase.storage.from(PHOTOS_BUCKET).remove([data.photo_path]);
+    if (data?.photo_path) {
+      forgetPhotoUrl(data.photo_path);
+      await supabase.storage.from(PHOTOS_BUCKET).remove([data.photo_path]);
+    }
   });
 }

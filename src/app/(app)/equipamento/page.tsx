@@ -51,10 +51,10 @@ export default async function GearPage() {
       <PageHeader title="Equipamento" />
       <PlanningTabs current="/equipamento" />
 
-      <Card>
-        <p className="text-sm text-muted">Por comprar</p>
-        <p className="mt-0.5 text-3xl font-bold tracking-tight tabular-nums">{formatEur(totals.all.toBuyCents)}</p>
-        <div className="mt-3 border-t border-sep pt-2">
+      <Card className="p-[1.125rem]">
+        <p className="eyebrow">Por comprar</p>
+        <p className="display mt-1 text-[clamp(2.25rem,12.5vw,3.125rem)] leading-[0.95]">{formatEur(totals.all.toBuyCents)}</p>
+        <div className="mt-4 border-t border-sep pt-2">
           <StatRow label="Essencial" value={formatEur(totals.byPriority.essential.toBuyCents)} />
           <StatRow label="Para depois" value={formatEur(totals.byPriority.later.toBuyCents)} />
           <StatRow
@@ -66,7 +66,7 @@ export default async function GearPage() {
       </Card>
 
       {totals.unpricedCount > 0 && (
-        <Notice className="mt-4">
+        <Notice className="mt-3">
           {totals.unpricedCount === 1 ? "1 item ainda não tem preço." : `${totals.unpricedCount} itens ainda não têm preço.`} Toca num
           item para o definir.
         </Notice>

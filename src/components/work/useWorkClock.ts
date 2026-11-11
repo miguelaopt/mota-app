@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { workOpAction } from "@/app/(app)/trabalho/actions";
 import type { ClockShift, ClockState, WorkOp } from "@/lib/work/clock";
-import { createClockStore, STORAGE_KEY } from "@/lib/work/clock-store";
+import { createClockStore, localDoneIds, STORAGE_KEY } from "@/lib/work/clock-store";
 
 let resync: (() => void) | null = null;
 
@@ -84,12 +84,7 @@ export function useWorkClock({
     lastCompleted: local?.lastCompleted ?? null,
     dismissedCompletedId: local?.dismissedCompletedId ?? null,
     pendingCount,
-    localDoneIds: local
-      ? [
-          ...(local.lastCompleted ? [local.lastCompleted.id] : []),
-          ...local.ops.flatMap((op) => (op.type === "complete" ? [op.shift.id] : [])),
-        ]
-      : [],
+    localDoneIds: local ? localDoneIds(local, renderedAt) : [],
     error: local?.error ?? null,
     dispatch: store.dispatch,
     dismissCompleted: store.dismissCompleted,

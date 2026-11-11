@@ -1,6 +1,15 @@
 import type { Metadata, Viewport } from "next";
+import { Barlow_Condensed } from "next/font/google";
 import { SerwistProvider } from "@serwist/turbopack/react";
 import "./globals.css";
+
+// Números e títulos em letra condensada (painel de instrumentos); o resto usa a letra do sistema.
+const barlow = Barlow_Condensed({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-barlow",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: { default: "Mota", template: "%s · Mota" },
@@ -9,7 +18,8 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Mota",
-    statusBarStyle: "default",
+    // Tema sempre escuro: o conteúdo passa por baixo da barra de estado (safe areas no CSS).
+    statusBarStyle: "black-translucent",
   },
   formatDetection: { telephone: false, email: false, address: false },
   icons: {
@@ -27,15 +37,13 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f2f2f7" },
-    { media: "(prefers-color-scheme: dark)", color: "#000000" },
-  ],
+  themeColor: "#0b0c0e",
+  colorScheme: "dark",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-PT">
+    <html lang="pt-PT" className={barlow.variable}>
       <body className="min-h-dvh antialiased">
         <SerwistProvider
           swUrl="/serwist/sw.js"

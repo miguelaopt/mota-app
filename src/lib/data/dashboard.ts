@@ -21,6 +21,8 @@ export async function getDashboardData(db: Db, now: Date) {
   return {
     motorcycle,
     settings,
+    accounts,
+    snapshots,
     unpricedGear: gear.filter((g) => g.status === "to_buy" && g.priceCents <= 0).length,
     unpricedCosts: costs.filter((c) => c.kind === "one_off" && c.amountCents <= 0).length,
     dashboard: computeDashboard({

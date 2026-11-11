@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyWorkOp, parseWorkOp, type ClockShift, type WorkOp } from "./clock";
-import { createClockStore, type SendResult, type StorageLike } from "./clock-store";
+import { createClockStore, localDoneIds, type SendResult, type StorageLike } from "./clock-store";
 
 const SHIFT_ID = "aaaaaaaa-0000-4000-8000-000000000001";
 const BREAK_ID = "bbbbbbbb-0000-4000-8000-000000000001";
@@ -177,5 +177,53 @@ describe("createClockStore", () => {
     store.syncFromServer("u1", shift, 1);
     store.syncFromServer("u2", null, 1);
     expect(store.getState()).toMatchObject({ userId: "u2", active: null, ops: [] });
+  });
+});
+
+describe("turno do calendário apagado depois de marcado (bug do dia 10)", () => {
+  const completeOp = (endedAt = T0 + 5 * 3600_000): WorkOp => ({ type: "complete", shift: { ...shift, endedAt } });
+
+  it("um duplo toque enquanto o turno está na fila não o envia duas vezes", async () => {
+    const server = fakeServer();
+    server.setOnline(false);
+    const store = createClockStore({ storage: () => memoryStorage(), send: server.send });
+    store.syncFromServer("u1", null, T0);
+    store.dispatch(completeOp());
+    store.dispatch(completeOp());
+    expect(store.getState()!.ops).toHaveLength(1);
+  });
+
+  it("voltar a marcar um turno já enviado envia-o outra vez (o servidor não duplica)", async () => {
+    const server = fakeServer();
+    const store = createClockStore({ storage: () => memoryStorage(), send: server.send });
+    store.syncFromServer("u1", null, T0);
+    store.dispatch(completeOp());
+    await store.flush();
+    // O utilizador apagou o turno no resumo e volta a carregar em "Turno feito".
+    store.dispatch(completeOp());
+    await store.flush();
+    expect(server.received.filter((o) => o.type === "complete")).toHaveLength(2);
+  });
+
+  it("depois de o servidor confirmar, o último turno só conta como feito em páginas antigas", async () => {
+    const server = fakeServer();
+    const store = createClockStore({ storage: () => memoryStorage(), send: server.send });
+    store.syncFromServer("u1", null, T0);
+    store.dispatch(completeOp());
+    await store.flush();
+    const state = store.getState()!;
+    // Página anterior à confirmação: ainda mostra o turno como feito neste telemóvel.
+    expect(localDoneIds(state, state.ackAt - 1)).toEqual([SHIFT_ID]);
+    // Página nova (o turno foi apagado no servidor): já não fica verde.
+    expect(localDoneIds(state, state.ackAt + 1)).toEqual([]);
+  });
+
+  it("um turno na fila (offline) conta sempre como feito", () => {
+    const server = fakeServer();
+    server.setOnline(false);
+    const store = createClockStore({ storage: () => memoryStorage(), send: server.send });
+    store.syncFromServer("u1", null, T0);
+    store.dispatch(completeOp());
+    expect(localDoneIds(store.getState()!, T0 + 999_999_999)).toEqual([SHIFT_ID]);
   });
 });

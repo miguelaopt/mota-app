@@ -2,12 +2,12 @@ import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("rounded-2xl bg-card p-4", className)} {...props} />;
+  return <div className={cn("glass rounded-[22px] p-4", className)} {...props} />;
 }
 
 /** Lista agrupada ao estilo iOS (linhas separadas por uma linha fina). */
 export function ListGroup({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("divide-y divide-sep overflow-hidden rounded-2xl bg-card", className)} {...props} />;
+  return <div className={cn("glass divide-y divide-sep overflow-hidden rounded-[22px]", className)} {...props} />;
 }
 
 export function Section({
@@ -25,7 +25,7 @@ export function Section({
     <section className={cn("mt-6", className)}>
       {(title || action) && (
         <div className="mb-2 flex min-h-6 items-end justify-between gap-2 px-1">
-          {title && <h2 className="text-[0.8rem] font-semibold uppercase tracking-wide text-muted">{title}</h2>}
+          {title && <h2 className="eyebrow text-faint">{title}</h2>}
           {action}
         </div>
       )}

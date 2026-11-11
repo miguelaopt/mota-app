@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { requireSession } from "@/lib/auth";
 import { getAccounts } from "@/lib/data/accounts";
 import { getDashboardData } from "@/lib/data/dashboard";
-import { getAttributions, getShift, getShifts } from "@/lib/data/work";
+import { getAttributions, getShift, getShiftsByIds } from "@/lib/data/work";
 import { formatShortDate, formatTime, toLocalInput } from "@/lib/dates";
 import { formatEur } from "@/lib/finance/money";
 import { formatBp, formatHm } from "@/lib/work/format";
@@ -51,7 +51,7 @@ export default async function ShiftPage({ params }: { params: Promise<{ id: stri
   // Diferença entre o planeado (estimativas atuais) e o que foi confirmado.
   let plannedForAttribution = 0;
   if (attribution) {
-    const linked = (await getShifts(supabase)).filter((s) => attribution.shiftIds.includes(s.id) && s.endedAt != null);
+    const linked = (await getShiftsByIds(supabase, attribution.shiftIds)).filter((s) => s.endedAt != null);
     plannedForAttribution = linked.reduce((sum, s) => sum + estimateShift(s, s.endedAt!).plannedCents, 0);
   }
   const accountName = attribution ? (accounts.find((a) => a.id === attribution.accountId)?.name ?? "conta") : null;
@@ -73,9 +73,9 @@ export default async function ShiftPage({ params }: { params: Promise<{ id: stri
       )}
 
       <Card className="p-5">
-        <p className="text-sm text-muted">Planeado para a {model}</p>
-        <p className="text-[2.2rem] font-extrabold leading-tight tracking-tight text-accent tabular-nums">{formatEur(e.plannedCents)}</p>
-        <p className="text-sm text-muted tabular-nums">
+        <p className="eyebrow">Planeado para a {model}</p>
+        <p className="display glow-text mt-1.5 text-[3rem] leading-[0.95] text-accent">{formatEur(e.plannedCents)}</p>
+        <p className="mt-1.5 text-[0.8125rem] text-muted tabular-nums">
           {formatEur(e.earnedCents)} {shift.payMode === "monthly" ? "de equivalente de salário" : "de ganhos estimados"} ×{" "}
           {formatBp(shift.allocationBp)}
         </p>
@@ -133,8 +133,8 @@ export default async function ShiftPage({ params }: { params: Promise<{ id: stri
           )}
         </Card>
         {!attribution && (
-          <Link href="/trabalho/confirmar" className="mt-2 inline-block px-1 text-sm font-medium text-accent">
-            Confirmar poupança
+          <Link href="/trabalho/confirmar" className="mt-2 inline-flex min-h-9 items-center px-1 text-sm font-medium text-accent">
+            Recebi o pagamento
           </Link>
         )}
       </Section>

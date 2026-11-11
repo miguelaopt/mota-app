@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MotorcycleIcon, PauseIcon, PlayIcon, SparkIcon } from "@/components/icons";
+import { PauseIcon, PlayIcon, SparkIcon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
 import { Card, StatRow } from "@/components/ui/Card";
 import { Field, inputClass } from "@/components/ui/fields";
@@ -119,7 +119,6 @@ export function WorkClock({ data }: { data: WorkClientData }) {
           </Sheet>
         </>
       )}
-
     </>
   );
 }
@@ -146,32 +145,42 @@ function ActiveShift({
 
   return (
     <>
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-400 to-orange-700">
-        {data.motorcycle?.photoUrl && (
+      <div className="glass relative overflow-hidden rounded-[24px]">
+        {data.motorcycle?.photoUrl ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={data.motorcycle.photoUrl} alt="" className="absolute inset-0 h-full w-full object-cover opacity-45" />
+            <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-bg via-bg/75 to-bg/30" />
+          </>
+        ) : (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={data.motorcycle.photoUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <img
+            src="/illustrations/z400.webp"
+            alt=""
+            width={924}
+            height={540}
+            className="pointer-events-none absolute -right-10 -top-3 w-[72%] max-w-none opacity-40"
+          />
         )}
-        <div className="relative bg-gradient-to-t from-black/85 via-black/60 to-black/30 p-5 text-white">
-          <p className="text-sm font-medium text-white/85">
-            {onBreak ? (onBreak.paid ? "Em pausa remunerada" : "Em pausa não remunerada") : `Estás a trabalhar para a tua ${model}`}
+        <div className="relative p-5">
+          <p className="eyebrow text-accent">
+            {onBreak ? (onBreak.paid ? "Em pausa remunerada" : "Em pausa não remunerada") : "Turno a decorrer"}
           </p>
-          <p className="mt-3 text-sm text-white/80">Planeado para a mota</p>
-          <p className="text-[2.6rem] font-extrabold leading-none tracking-tight tabular-nums text-orange-200">
-            {formatEur(e.plannedCents)}
-          </p>
-          <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+          <p className="mt-1 text-sm text-muted">{onBreak ? "O tempo pago continua parado." : `Estás a trabalhar para a tua ${model}`}</p>
+          <p className="mt-5 text-xs text-muted">Planeado para a mota</p>
+          <p className="display glow-text mt-1 text-[3.25rem] leading-[0.95] text-accent">{formatEur(e.plannedCents)}</p>
+          <div className="mt-5 grid grid-cols-2 gap-3 border-t border-sep pt-4">
             <div>
-              <p className="text-white/75">{earningsLabel(shift.payMode)}</p>
-              <p className="text-lg font-semibold tabular-nums">{formatEur(e.earnedCents)}</p>
+              <p className="text-xs text-muted">{earningsLabel(shift.payMode)}</p>
+              <p className="display mt-1 text-2xl">{formatEur(e.earnedCents)}</p>
             </div>
             <div>
-              <p className="text-white/75">Tempo pago</p>
-              <p className="text-lg font-semibold tabular-nums" role="timer" aria-live="off">
+              <p className="text-xs text-muted">Tempo pago</p>
+              <p className="display mt-1 text-2xl" role="timer" aria-live="off">
                 {formatClock(e.paidMs)}
               </p>
             </div>
           </div>
-          <MotorcycleIcon size={28} className="absolute right-5 top-5 text-white/70" aria-hidden />
         </div>
       </div>
 
@@ -209,7 +218,8 @@ function ActiveShift({
         )}
         {atEnd && e.overtimeMs === 0 && (
           <p className="text-sm text-muted tabular-nums">
-            Na saída prevista: {formatEur(atEnd.plannedCents)} planeados ({formatEur(atEnd.earnedCents)} {earningsLabelLower(shift.payMode)}).
+            Na saída prevista: {formatEur(atEnd.plannedCents)} planeados ({formatEur(atEnd.earnedCents)} {earningsLabelLower(shift.payMode)}
+            ).
           </p>
         )}
         <div className="grid grid-cols-2 gap-3 pt-1">
@@ -320,22 +330,19 @@ function Motivation({ data, shift, now }: { data: WorkClientData; shift: ClockSh
 
   return (
     <div className="space-y-4">
-      <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-gradient-to-br from-orange-400 to-orange-700">
+      <div className="relative aspect-[16/10] overflow-hidden rounded-[22px] border border-glass-border bg-[radial-gradient(120%_90%_at_60%_30%,#1d2125_0%,#0e1012_60%,#0b0c0e_100%)]">
         {data.motorcycle?.photoUrl && !broken ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={data.motorcycle.photoUrl} alt={model} onError={() => setBroken(true)} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full items-center justify-center text-white/85">
-            <MotorcycleIcon size={96} strokeWidth={1.4} />
-          </div>
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src="/illustrations/z400.webp" alt="" width={924} height={540} className="absolute inset-x-0 bottom-2 mx-auto w-[92%]" />
         )}
-        <p className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent p-4 pt-10 text-2xl font-bold text-white">
-          {model}
-        </p>
+        <p className="display absolute inset-x-0 top-0 bg-gradient-to-b from-bg/80 to-transparent p-4 pb-10 text-[1.75rem]">{model}</p>
       </div>
       <ul className="space-y-3">
         {messages.map((m) => (
-          <li key={m} className="rounded-2xl bg-card-2 px-4 py-3 leading-snug">
+          <li key={m} className="rounded-[18px] border border-glass-border bg-card-2 px-4 py-3 leading-snug">
             {m}
           </li>
         ))}

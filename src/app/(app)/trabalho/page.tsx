@@ -1,21 +1,26 @@
+import { randomUUID } from "node:crypto";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BriefcaseIcon, ChevronRightIcon, SlidersIcon } from "@/components/icons";
-import { Badge } from "@/components/ui/Badge";
 import { buttonClass } from "@/components/ui/Button";
 import { Card, ListGroup, Section, StatRow } from "@/components/ui/Card";
+import { DayTile } from "@/components/ui/DayTile";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { undoKey } from "@/components/undo/keys";
+import { Removable } from "@/components/undo/UndoProvider";
+import { ReceivePaymentBanner } from "@/components/work/ReceivePaymentBanner";
 import { WorkClock } from "@/components/work/WorkClock";
 import { WorkToday } from "@/components/work/WorkToday";
 import { requireSession } from "@/lib/auth";
 import { getDashboardData } from "@/lib/data/dashboard";
 import { signPhotoUrls } from "@/lib/data/photos";
 import { buildWorkClientData, getWorkData } from "@/lib/data/work-view";
-import { formatMonthYear, formatShortDate, formatTime } from "@/lib/dates";
+import { formatMonthYear, formatTime } from "@/lib/dates";
 import { formatEur } from "@/lib/finance/money";
 import { formatBp, formatHm, formatHoursCeil } from "@/lib/work/format";
 import { equivalentShifts, hoursToGoal, referenceDuration, workForecast } from "@/lib/work/goal";
 import { estimateShift, type GoalTarget } from "@/lib/work/shift";
+import { buildConfirmData } from "@/lib/work/confirm";
 import { TARGET_LABEL } from "@/lib/work/view";
 import { WorkCalendar } from "./WorkCalendar";
 
@@ -24,7 +29,10 @@ export const metadata: Metadata = { title: "Trabalho" };
 export default async function WorkPage() {
   const { supabase, userId } = await requireSession();
   const now = new Date();
-  const [work, { motorcycle, dashboard }] = await Promise.all([getWorkData(supabase, now), getDashboardData(supabase, now)]);
+  const [work, { motorcycle, dashboard, accounts, snapshots }] = await Promise.all([
+    getWorkData(supabase, now),
+    getDashboardData(supabase, now),
+  ]);
   const model = motorcycle?.model ?? "mota";
 
   if (!work) {
@@ -32,10 +40,10 @@ export default async function WorkPage() {
       <>
         <PageHeader title="Trabalho" />
         <Card className="p-5 text-center">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-soft text-accent">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-accent-line bg-accent-soft text-accent">
             <BriefcaseIcon size={30} />
           </span>
-          <p className="mt-4 text-xl font-bold">Transforma os teus turnos em progresso para a {model}</p>
+          <p className="display mt-4 text-[1.75rem] leading-tight">Transforma os teus turnos em progresso para a {model}</p>
           <p className="mt-2 text-muted">
             Pica a entrada e a saída, vê quanto cada turno te aproxima da mota e confirma a poupança quando ela acontecer.
           </p>
@@ -75,18 +83,25 @@ export default async function WorkPage() {
     now,
   });
   const hasGoal = main.totalCents > 0;
+  const confirm = buildConfirmData({ shifts, accounts, snapshots, attributions: work.attributions, now });
 
   return (
     <>
       <PageHeader
         title="Trabalho"
-        subtitle={settings.jobName}
+        subtitle={`${settings.jobName} · ${formatEur(settings.hourlyRateCents)}/h · ${formatBp(settings.allocationBp)} para a mota`}
         action={
-          <Link href="/trabalho/definicoes" aria-label="Definições do trabalho" className="mb-1 rounded-full bg-card p-2 text-accent active:opacity-60">
+          <Link
+            href="/trabalho/definicoes"
+            aria-label="Definições do trabalho"
+            className="mb-0.5 flex h-11 w-11 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.06] text-fg backdrop-blur-xl active:opacity-60"
+          >
             <SlidersIcon size={20} />
           </Link>
         }
       />
+
+      <ReceivePaymentBanner className="mb-3" data={confirm} attributionId={randomUUID()} renderedAt={now.getTime()} />
 
       {data.activeShift ? <WorkClock data={data} /> : <WorkToday data={data} />}
 
@@ -107,7 +122,7 @@ export default async function WorkPage() {
             </p>
           ) : mainHours.status === "reached" ? (
             <div>
-              <p className="text-lg font-bold text-success">Atingiste o {TARGET_LABEL[settings.target]}! 0 horas em falta.</p>
+              <p className="display text-2xl text-success">Atingiste o {TARGET_LABEL[settings.target]}. 0 horas em falta.</p>
               {settings.target === "minimum" && (
                 <Link href="/trabalho/definicoes" className="mt-1 inline-block text-sm font-medium text-accent">
                   Escolher o setup completo como próxima meta
@@ -124,8 +139,9 @@ export default async function WorkPage() {
           ) : (
             <>
               <p className="leading-snug">
-                Faltam aproximadamente <span className="text-2xl font-bold tabular-nums">{formatHoursCeil(mainHours.hours)} horas pagas</span>{" "}
-                para o {TARGET_LABEL[settings.target]}, se destinares {formatBp(settings.allocationBp)} ao objetivo.
+                Faltam aproximadamente{" "}
+                <span className="display text-[1.75rem] text-accent">{formatHoursCeil(mainHours.hours)} horas pagas</span> para o{" "}
+                {TARGET_LABEL[settings.target]}, se destinares {formatBp(settings.allocationBp)} ao objetivo.
               </p>
               {reference ? (
                 <p className="text-sm text-muted tabular-nums">
@@ -180,13 +196,15 @@ export default async function WorkPage() {
             }
             value={<span className="text-accent">{formatEur(stats.pendingPlannedCents)}</span>}
           />
-          <StatRow label="Poupança confirmada" hint="dinheiro registado nas contas" value={<span className="text-success">{formatEur(stats.confirmedCents)}</span>} />
+          <StatRow
+            label="Poupança confirmada"
+            hint="dinheiro registado nas contas"
+            value={<span className="text-success">{formatEur(stats.confirmedCents)}</span>}
+          />
         </Card>
-        {stats.pendingShiftIds.length > 0 && (
-          <Link href="/trabalho/confirmar" className={buttonClass("secondary", "lg", "mt-3 w-full")}>
-            Confirmar poupança
-          </Link>
-        )}
+        <Link href="/trabalho/confirmar" className={buttonClass("secondary", "md", "mt-3 w-full")}>
+          {stats.pendingShiftIds.length > 0 ? "Recebi o pagamento" : "Ver confirmações"}
+        </Link>
       </Section>
 
       <Section title="Turnos registados">
@@ -194,14 +212,15 @@ export default async function WorkPage() {
           <StatRow label="Este mês" value={stats.completedThisMonth} />
           <StatRow label="No total" value={stats.completedCount} />
           <StatRow label="Horas pagas registadas" value={formatHm(stats.paidMs)} />
-          <StatRow label={settings.payMode === "monthly" ? "Equivalente de salário" : "Ganhos estimados"} value={formatEur(stats.earnedCents)} />
+          <StatRow
+            label={settings.payMode === "monthly" ? "Equivalente de salário" : "Ganhos estimados"}
+            value={formatEur(stats.earnedCents)}
+          />
           <StatRow label="Planeado para a mota" value={formatEur(stats.plannedCents)} />
           {stats.longestPaidMs > 0 && <StatRow label="Turno mais longo" value={formatHm(stats.longestPaidMs)} />}
         </Card>
         {stats.paidMs > 0 && (
-          <p className="mt-2 px-1 text-sm text-muted">
-            Trabalhaste {formatHm(stats.paidMs)} por este objetivo (horas registadas na app).
-          </p>
+          <p className="mt-2 px-1 text-sm text-muted">Trabalhaste {formatHm(stats.paidMs)} por este objetivo (horas registadas na app).</p>
         )}
       </Section>
 
@@ -211,22 +230,21 @@ export default async function WorkPage() {
             {completed.slice(0, 15).map((shift) => {
               const e = estimateShift(shift, shift.endedAt!);
               return (
-                <Link
-                  key={shift.id}
-                  href={`/trabalho/turnos/${shift.id}`}
-                  className="flex items-center gap-3 px-4 py-3 active:bg-card-2"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium tabular-nums">
-                      {formatShortDate(new Date(shift.startedAt), now)} · {formatTime(shift.startedAt)}–{formatTime(shift.endedAt!)}
-                    </p>
-                    <p className="text-sm text-muted tabular-nums">
-                      {formatHm(e.paidMs)} pagas · {formatEur(e.plannedCents)} planeados
-                    </p>
-                  </div>
-                  {shift.attributionId ? <Badge tone="success">Confirmado</Badge> : <Badge tone="accent">Por confirmar</Badge>}
-                  <ChevronRightIcon size={18} className="shrink-0 text-muted" />
-                </Link>
+                <Removable key={shift.id} id={undoKey.shift(shift.id)}>
+                  <Link href={`/trabalho/turnos/${shift.id}`} className="flex min-h-16 items-center gap-3 px-4 py-3 active:bg-card-2">
+                    <DayTile at={shift.startedAt} size="sm" done={shift.attributionId != null} />
+                    <div className="min-w-0 flex-1">
+                      <p className="display text-xl">
+                        {formatTime(shift.startedAt)} – {formatTime(shift.endedAt!)}
+                      </p>
+                      <p className="text-[0.8125rem] text-muted tabular-nums">
+                        {formatHm(e.paidMs)} pagas · {formatEur(e.plannedCents)} ·{" "}
+                        {shift.attributionId ? <span className="text-accent">confirmado</span> : "por confirmar"}
+                      </p>
+                    </div>
+                    <ChevronRightIcon size={18} className="shrink-0 text-faint" />
+                  </Link>
+                </Removable>
               );
             })}
           </ListGroup>
