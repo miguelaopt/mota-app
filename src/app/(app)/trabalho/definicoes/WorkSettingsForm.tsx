@@ -1,8 +1,8 @@
 "use client";
 
-import { CheckIcon } from "@/components/icons";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { CheckIcon } from "@/components/icons";
 import { Field, FormError, MoneyInput, PercentInput, Segmented, TextInput } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { useFormAction } from "@/components/ui/useFormAction";
@@ -16,6 +16,7 @@ export interface WorkSettingsValues {
   hourlyRateCents: number | null;
   monthlySalaryCents: number | null;
   monthlyHours: number | null;
+  minimumMonthlyPayCents: number | null;
   allocationPct: number;
   target: GoalTarget;
   paidBreaks: boolean;
@@ -76,13 +77,27 @@ export function WorkSettingsForm({ values, isNew }: { values: WorkSettingsValues
       </Field>
 
       {payMode === "hourly" ? (
-        <Field
-          label="Valor líquido por hora (estimado)"
-          htmlFor="hourly_rate"
-          hint="O que recebes por hora, já sem descontos. A app não calcula impostos."
-        >
-          <MoneyInput id="hourly_rate" name="hourly_rate" value={rate} onChange={(e) => setRate(e.target.value)} />
-        </Field>
+        <>
+          <Field
+            label="Valor líquido por hora (estimado)"
+            htmlFor="hourly_rate"
+            hint="O que recebes por hora, já sem descontos. A app não calcula impostos."
+          >
+            <MoneyInput id="hourly_rate" name="hourly_rate" value={rate} onChange={(e) => setRate(e.target.value)} />
+          </Field>
+          <Field
+            label="Ordenado mínimo por mês (opcional)"
+            htmlFor="minimum_monthly_pay"
+            hint="O mínimo líquido que recebes num mês. A data prevista do Início conta com pelo menos este valor × a percentagem para a mota."
+          >
+            <MoneyInput
+              id="minimum_monthly_pay"
+              name="minimum_monthly_pay"
+              defaultCents={values.minimumMonthlyPayCents}
+              placeholder="Ex.: 609,00"
+            />
+          </Field>
+        </>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3">
@@ -120,7 +135,8 @@ export function WorkSettingsForm({ values, isNew }: { values: WorkSettingsValues
             />
           </Field>
           <p className="-mt-2 px-1 text-xs text-muted">
-            Com salário fixo, o tempo de cada turno mostra o equivalente de salário. Um turno a mais não significa salário a mais.
+            Com salário fixo, o tempo de cada turno mostra o equivalente de salário. Um turno a mais não significa salário a mais. A data
+            prevista do Início conta com pelo menos este salário × a percentagem para a mota.
           </p>
         </>
       )}

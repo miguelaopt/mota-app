@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeSavingsRate, DAY_MS, seriesInRange, totalAt, totalSeries, type BalanceSnapshot } from "./history";
+import { AVG_DAYS_PER_MONTH, computeSavingsRate, DAY_MS, rateWithPending, seriesInRange, totalAt, totalSeries, type BalanceSnapshot } from "./history";
 
 const day = (iso: string) => new Date(`${iso}T12:00:00Z`);
 
@@ -144,5 +144,19 @@ describe("seriesInRange", () => {
 
   it("sem pontos, sem série", () => {
     expect(seriesInRange([], now, 91)).toEqual([]);
+  });
+});
+
+describe("rateWithPending", () => {
+  it("soma o por confirmar ao período da média (caso real: 262 €/mês em 55 dias + 424,80 €)", () => {
+    const rate = { centsPerMonth: 26200, days: 55, since: new Date("2026-09-27T12:00:00Z") };
+    const months = 55 / AVG_DAYS_PER_MONTH;
+    expect(rateWithPending(rate, 42480)).toBeCloseTo(26200 + 42480 / months, 6);
+    expect(Math.round(rateWithPending(rate, 42480) / 100)).toBe(497);
+  });
+
+  it("sem nada por confirmar, fica igual", () => {
+    const rate = { centsPerMonth: 26200, days: 55, since: new Date() };
+    expect(rateWithPending(rate, 0)).toBe(26200);
   });
 });

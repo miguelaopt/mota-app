@@ -149,3 +149,12 @@ export function computeSavingsRate(
     since: earliest,
   };
 }
+
+/**
+ * Ritmo real se o dinheiro por confirmar (de turnos feitos dentro do mesmo
+ * período) já estivesse nas contas. Só informativo: a média real não muda.
+ */
+export function rateWithPending(rate: SavingsRate, pendingCents: Cents): number {
+  const months = rate.days / AVG_DAYS_PER_MONTH;
+  return months > 0 ? rate.centsPerMonth + pendingCents / months : rate.centsPerMonth;
+}

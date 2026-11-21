@@ -14,6 +14,21 @@ export type HoursToGoal =
   | { status: "no_contribution" }
   | { status: "ok"; hours: number; contributionCentsPerHour: number };
 
+/**
+ * Quanto do ordenado mínimo mensal vai para a mota (para a data prevista).
+ * Em salário fixo, o salário é o mínimo; por hora, o valor indicado (se houver).
+ */
+export function minimumPayForGoal(settings: {
+  payMode: "hourly" | "monthly";
+  monthlySalaryCents: Cents | null;
+  minimumMonthlyPayCents: Cents | null;
+  allocationBp: number;
+}): Cents {
+  const pay = settings.payMode === "monthly" ? settings.monthlySalaryCents : settings.minimumMonthlyPayCents;
+  if (!pay || pay <= 0) return 0;
+  return Math.round((pay * settings.allocationBp) / FULL_BP);
+}
+
 export function contributionPerHour(hourlyRateCents: Cents, allocationBp: number): number {
   if (hourlyRateCents <= 0 || allocationBp <= 0) return 0;
   return (hourlyRateCents * Math.min(allocationBp, FULL_BP)) / FULL_BP;

@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import type { Cents } from "@/lib/finance/money";
 import type { Db } from "@/lib/supabase/server";
 import type { GoalTarget, PayMode, ShiftBreak } from "@/lib/work/shift";
@@ -9,6 +10,8 @@ export interface WorkSettings {
   hourlyRateCents: Cents;
   monthlySalaryCents: Cents | null;
   monthlyHours: number | null;
+  /** Ordenado mínimo por mês (opcional, só em "por hora"). */
+  minimumMonthlyPayCents: Cents | null;
   allocationBp: number;
   target: GoalTarget;
   paidBreaks: boolean;
@@ -19,13 +22,12 @@ export interface WorkSettings {
   animations: boolean;
 }
 
-export async function getWorkSettings(db: Db): Promise<WorkSettings | null> {
-  const { data, error } = await db
-    .from("work_settings")
-    .select(
-      "job_name, pay_mode, hourly_rate_cents, monthly_salary_cents, monthly_hours, allocation_bp, target, paid_breaks, reference_shift_minutes, shifts_per_week, time_zone, haptics, animations",
-    )
-    .maybeSingle();
+/**
+ * Lida uma vez por pedido (o Início e o Trabalho pedem-na em vários sítios).
+ * Com "*", uma coluna nova ainda sem migration fica só em falta, sem partir a página.
+ */
+export const getWorkSettings = cache(async (db: Db): Promise<WorkSettings | null> => {
+  const { data, error } = await db.from("work_settings").select("*").maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
   return {
@@ -34,6 +36,7 @@ export async function getWorkSettings(db: Db): Promise<WorkSettings | null> {
     hourlyRateCents: data.hourly_rate_cents,
     monthlySalaryCents: data.monthly_salary_cents,
     monthlyHours: data.monthly_hours == null ? null : Number(data.monthly_hours),
+    minimumMonthlyPayCents: data.minimum_monthly_pay_cents ?? null,
     allocationBp: data.allocation_bp,
     target: data.target,
     paidBreaks: data.paid_breaks,
@@ -43,7 +46,7 @@ export async function getWorkSettings(db: Db): Promise<WorkSettings | null> {
     haptics: data.haptics,
     animations: data.animations,
   };
-}
+});
 
 /** Turno com instantes em milissegundos (como os cálculos de lib/work). */
 export interface ShiftRecord {

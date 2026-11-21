@@ -13,8 +13,10 @@ import { buildWorkClientData, getWorkData } from "@/lib/data/work-view";
 import { formatDuration, formatMonthYear } from "@/lib/dates";
 import type { TargetStatus } from "@/lib/finance/dashboard";
 import type { Forecast } from "@/lib/finance/forecast";
+import { rateWithPending } from "@/lib/finance/history";
 import { formatEur, formatPct } from "@/lib/finance/money";
 import { buildConfirmData } from "@/lib/work/confirm";
+import { formatBp } from "@/lib/work/format";
 
 /** Ritmo arredondado ao euro: "≈ 494 €/mês". */
 function perMonth(cents: number) {
@@ -29,6 +31,11 @@ function forecastLabel(forecast: Forecast): { date: string; detail: string } {
       return {
         date: formatMonthYear(forecast.date!),
         detail: `${formatDuration(forecast.months!)}, ao ritmo atual (${perMonth(forecast.centsPerMonth!)})`,
+      };
+    case "minimum_pay":
+      return {
+        date: formatMonthYear(forecast.date!),
+        detail: `${formatDuration(forecast.months!)}, com o ordenado mínimo (${perMonth(forecast.centsPerMonth!)})`,
       };
     case "monthly_goal":
       return {
@@ -67,10 +74,8 @@ function TargetCard({ title, target }: { title: string; target: TargetStatus }) 
 export default async function HomePage() {
   const { supabase, userId } = await requireSession();
   const now = new Date();
-  const [{ motorcycle, settings, accounts, snapshots, dashboard: d, unpricedGear, unpricedCosts }, work] = await Promise.all([
-    getDashboardData(supabase, now),
-    getWorkData(supabase, now),
-  ]);
+  const [{ motorcycle, settings, accounts, snapshots, workSettings, minimumPayCents, dashboard: d, unpricedGear, unpricedCosts }, work] =
+    await Promise.all([getDashboardData(supabase, now), getWorkData(supabase, now)]);
   const photos = await signPhotoUrls(supabase, [motorcycle?.photoPath]);
   const photoUrl = motorcycle?.photoPath ? photos[motorcycle.photoPath] : undefined;
   const workData = work ? buildWorkClientData({ userId, now, work, motorcycle, photoUrl: photoUrl ?? null, dashboard: d }) : null;
@@ -80,6 +85,18 @@ export default async function HomePage() {
   const confirm = work ? buildConfirmData({ shifts: work.shifts, accounts, snapshots, attributions: work.attributions, now }) : null;
   const fullForecast = forecastLabel(d.full.forecast);
   const showProjection = projectedPct != null && projectedPct > d.full.pct + 0.05;
+  // Dinheiro de turnos feitos dentro do período da média real e ainda por confirmar.
+  const rateSince = d.rate?.since.getTime();
+  const pendingInRate =
+    rateSince != null && confirm ? confirm.pending.filter((s) => s.startedAt >= rateSince).reduce((sum, s) => sum + s.plannedCents, 0) : 0;
+  const monthlyPay = workSettings?.payMode === "monthly" ? workSettings.monthlySalaryCents : (workSettings?.minimumMonthlyPayCents ?? null);
+  const forecastBasis: Partial<Record<Forecast["source"], string>> = {
+    minimum_pay: d.rate ? "A previsão usa o ordenado mínimo, por ser maior do que a média real." : "A previsão usa o ordenado mínimo.",
+    history:
+      minimumPayCents > 0 ? "A previsão usa a média real, por já ser maior do que o ordenado mínimo." : "A previsão usa a média real.",
+    monthly_goal: "A previsão usa a meta mensal, enquanto não houver média real nem ordenado mínimo.",
+  };
+  const basis = forecastBasis[(d.full.reached ? d.minimum : d.full).forecast.source];
   const hasGoal = d.full.totalCents > 0;
 
   const setup = [
@@ -261,15 +278,38 @@ export default async function HomePage() {
       <Section title="Ritmo de poupança">
         <Card className="py-2">
           {d.rate ? (
-            <StatRow
-              label="Média real"
-              hint={`últimos ${Math.round(d.rate.days)} dias de histórico`}
-              value={
-                <span className={cn("font-semibold", d.rate.centsPerMonth < 0 && "text-danger")}>{perMonth(d.rate.centsPerMonth)}</span>
-              }
-            />
+            <>
+              <StatRow
+                label="Média real"
+                hint={`últimos ${Math.round(d.rate.days)} dias de histórico`}
+                value={
+                  <span className={cn("font-semibold", d.rate.centsPerMonth < 0 && "text-danger")}>{perMonth(d.rate.centsPerMonth)}</span>
+                }
+              />
+              {pendingInRate > 0 && (
+                <p className="pb-1.5 text-xs text-muted tabular-nums">
+                  com os {formatEur(pendingInRate)} por confirmar:{" "}
+                  <span className="font-semibold text-fg">≈ {perMonth(rateWithPending(d.rate, pendingInRate))}</span>
+                </p>
+              )}
+            </>
           ) : (
             <StatRow label="Média real" hint="precisa de pelo menos 30 dias de histórico" value={<span className="text-muted">—</span>} />
+          )}
+          {workSettings && (
+            <StatRow
+              label={
+                <Link href="/trabalho/definicoes" className="text-accent">
+                  {workSettings.payMode === "monthly" ? "Salário fixo" : "Ordenado mínimo"}
+                </Link>
+              }
+              hint={
+                monthlyPay && workSettings.allocationBp < 10000
+                  ? `${formatEur(monthlyPay, { hideZeroCents: true })} × ${formatBp(workSettings.allocationBp)} para a mota`
+                  : undefined
+              }
+              value={minimumPayCents > 0 ? perMonth(minimumPayCents) : <span className="text-muted">por definir</span>}
+            />
           )}
           <StatRow
             label={
@@ -280,6 +320,7 @@ export default async function HomePage() {
             value={settings.monthlyGoalCents > 0 ? perMonth(settings.monthlyGoalCents) : <span className="text-muted">por definir</span>}
           />
         </Card>
+        {basis && <p className="mt-2 px-1 text-xs text-faint">{basis}</p>}
       </Section>
 
       <Section title="O que entra na meta">

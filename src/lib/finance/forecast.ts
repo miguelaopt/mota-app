@@ -1,7 +1,7 @@
 import { AVG_DAYS_PER_MONTH, DAY_MS, type SavingsRate } from "./history";
 import type { Cents } from "./money";
 
-export type ForecastSource = "reached" | "history" | "monthly_goal" | "none";
+export type ForecastSource = "reached" | "history" | "minimum_pay" | "monthly_goal" | "none";
 
 export interface Forecast {
   source: ForecastSource;
@@ -15,25 +15,30 @@ export interface Forecast {
 export interface ForecastInput {
   missingCents: Cents;
   rate: SavingsRate | null;
+  /** Parte do ordenado mínimo destinada à mota, por mês (0 = não definido). */
+  minimumPayCents?: Cents;
   monthlyGoalCents: Cents;
   now: Date;
 }
 
 /**
- * Data prevista para atingir a meta: usa o ritmo real de poupança quando há
- * histórico suficiente e positivo; caso contrário, a meta mensal definida nas
- * definições; sem nenhum dos dois, não há previsão.
+ * Data prevista para atingir a meta. Usa o maior entre o ritmo real de
+ * poupança (com histórico suficiente e positivo) e a parte do ordenado mínimo
+ * para a mota: o ordenado garante um ritmo, mesmo com o histórico ainda curto
+ * ou com pagamentos por registar. Sem nenhum dos dois, usa a meta mensal; sem
+ * meta, não há previsão.
  */
-export function computeForecast({ missingCents, rate, monthlyGoalCents, now }: ForecastInput): Forecast {
+export function computeForecast({ missingCents, rate, minimumPayCents = 0, monthlyGoalCents, now }: ForecastInput): Forecast {
   if (missingCents <= 0) {
     return { source: "reached", centsPerMonth: rate?.centsPerMonth ?? null, months: 0, date: now };
   }
 
   let source: ForecastSource;
   let centsPerMonth: number;
-  if (rate && rate.centsPerMonth >= 1) {
-    source = "history";
-    centsPerMonth = rate.centsPerMonth;
+  const real = rate && rate.centsPerMonth >= 1 ? rate.centsPerMonth : 0;
+  if (real > 0 || minimumPayCents > 0) {
+    source = minimumPayCents > real ? "minimum_pay" : "history";
+    centsPerMonth = Math.max(real, minimumPayCents);
   } else if (monthlyGoalCents > 0) {
     source = "monthly_goal";
     centsPerMonth = monthlyGoalCents;

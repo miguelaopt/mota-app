@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { formatEur } from "@/lib/finance/money";
 import { formatHoursCeil } from "./format";
-import { equivalentShifts, hoursToGoal, nextMilestone, referenceDuration, workForecast } from "./goal";
+import { equivalentShifts, hoursToGoal, minimumPayForGoal, nextMilestone, referenceDuration, workForecast } from "./goal";
 import { computeWorkStats, type StatsShift } from "./stats";
 
 describe("hoursToGoal / equivalentShifts", () => {
@@ -91,5 +91,24 @@ describe("computeWorkStats", () => {
     expect(s.pendingShiftIds).toEqual(["b", "c"]);
     expect(s.pendingPlannedCents).toBe(2 * 1925);
     expect(s.confirmedCents).toBe(1800);
+  });
+});
+
+describe("minimumPayForGoal", () => {
+  const base = { payMode: "hourly" as const, monthlySalaryCents: null, minimumMonthlyPayCents: 60900, allocationBp: 10000 };
+
+  it("por hora: o ordenado mínimo indicado × a percentagem para a mota", () => {
+    expect(minimumPayForGoal(base)).toBe(60900);
+    expect(minimumPayForGoal({ ...base, allocationBp: 5000 })).toBe(30450);
+    expect(minimumPayForGoal({ ...base, allocationBp: 3333 })).toBe(20298); // arredonda ao cêntimo
+  });
+
+  it("sem ordenado mínimo indicado, não conta", () => {
+    expect(minimumPayForGoal({ ...base, minimumMonthlyPayCents: null })).toBe(0);
+    expect(minimumPayForGoal({ ...base, minimumMonthlyPayCents: 0 })).toBe(0);
+  });
+
+  it("em salário fixo, o próprio salário é o mínimo", () => {
+    expect(minimumPayForGoal({ ...base, payMode: "monthly", monthlySalaryCents: 82000, minimumMonthlyPayCents: null })).toBe(82000);
   });
 });
