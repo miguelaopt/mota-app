@@ -207,6 +207,7 @@ export async function saveWorkSettingsAction(_prev: ActionResult, form: FormData
     let hourlyRateCents: number;
     let monthlySalaryCents: number | null = null;
     let monthlyHours: number | null = null;
+    let minimumMonthlyPayCents: number | null = null;
 
     if (payMode === "monthly") {
       monthlySalaryCents = toCents(getMoney(form, "monthly_salary", { label: "Salário líquido mensal", required: true }));
@@ -216,28 +217,35 @@ export async function saveWorkSettingsAction(_prev: ActionResult, form: FormData
       hourlyRateCents = typed != null ? toCents(typed) : monthlyToHourlyCents(monthlySalaryCents, monthlyHours);
     } else {
       hourlyRateCents = toCents(getMoney(form, "hourly_rate", { label: "Valor líquido por hora", required: true }));
+      const minimum = getOptionalMoney(form, "minimum_monthly_pay", { label: "Ordenado mínimo por mês" });
+      minimumMonthlyPayCents = minimum == null || minimum <= 0 ? null : toCents(minimum);
+      if (minimumMonthlyPayCents != null && minimumMonthlyPayCents > 100000000) throw new FormError("O ordenado mínimo é demasiado alto.");
     }
     if (hourlyRateCents > 100000) throw new FormError("O valor/hora é demasiado alto.");
 
     const referenceHours = getOptionalNumber(form, "reference_hours", { label: "Duração de referência", min: 0.25, max: 24 });
 
-    check(
-      await supabase.from("work_settings").upsert({
-        user_id: userId,
-        job_name: getRequiredText(form, "job_name", { label: "Trabalho", max: 60 }),
-        pay_mode: payMode,
-        hourly_rate_cents: hourlyRateCents,
-        monthly_salary_cents: monthlySalaryCents,
-        monthly_hours: monthlyHours,
-        allocation_bp: pctToBp(getPercent(form, "allocation_pct", { label: "Percentagem para a mota", fallback: 100 })),
-        target: getEnum(form, "target", TARGETS, "minimum"),
-        paid_breaks: form.get("paid_breaks") === "paid",
-        reference_shift_minutes: referenceHours == null ? null : Math.round(referenceHours * 60),
-        shifts_per_week: getOptionalNumber(form, "shifts_per_week", { label: "Turnos por semana", min: 0.5, max: 21 }),
-        haptics: form.get("haptics") === "on",
-        animations: form.get("animations") === "on",
-      }),
-    );
+    const { error } = await supabase.from("work_settings").upsert({
+      user_id: userId,
+      job_name: getRequiredText(form, "job_name", { label: "Trabalho", max: 60 }),
+      pay_mode: payMode,
+      hourly_rate_cents: hourlyRateCents,
+      monthly_salary_cents: monthlySalaryCents,
+      monthly_hours: monthlyHours,
+      minimum_monthly_pay_cents: minimumMonthlyPayCents,
+      allocation_bp: pctToBp(getPercent(form, "allocation_pct", { label: "Percentagem para a mota", fallback: 100 })),
+      target: getEnum(form, "target", TARGETS, "minimum"),
+      paid_breaks: form.get("paid_breaks") === "paid",
+      reference_shift_minutes: referenceHours == null ? null : Math.round(referenceHours * 60),
+      shifts_per_week: getOptionalNumber(form, "shifts_per_week", { label: "Turnos por semana", min: 0.5, max: 21 }),
+      haptics: form.get("haptics") === "on",
+      animations: form.get("animations") === "on",
+    });
+    // Coluna nova ainda sem migration no Supabase (PostgREST: coluna desconhecida).
+    if (error?.code === "PGRST204") {
+      throw new FormError("Falta correr a migration 20261121000001_minimum_pay.sql no Supabase (SQL Editor).");
+    }
+    if (error) throw new Error(error.message);
   });
 }
 

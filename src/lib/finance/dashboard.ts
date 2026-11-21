@@ -11,6 +11,8 @@ export interface DashboardInput {
   costs: GoalCost[];
   snapshots: BalanceSnapshot[];
   monthlyGoalCents: Cents;
+  /** Parte do ordenado mínimo destinada à mota, por mês (0 = não definido). */
+  minimumPayCents?: Cents;
   now: Date;
 }
 
@@ -34,7 +36,16 @@ export interface Dashboard {
 }
 
 /** Tudo o que o ecrã de Início mostra, a partir dos dados em bruto. */
-export function computeDashboard({ accounts, motorcycle, gear, costs, snapshots, monthlyGoalCents, now }: DashboardInput): Dashboard {
+export function computeDashboard({
+  accounts,
+  motorcycle,
+  gear,
+  costs,
+  snapshots,
+  monthlyGoalCents,
+  minimumPayCents = 0,
+  now,
+}: DashboardInput): Dashboard {
   const summary = summarizeAccounts(accounts);
   const savedCents = summary.totalCountedCents;
   const goal = computeGoal({ motorcycle, gear, costs });
@@ -45,7 +56,7 @@ export function computeDashboard({ accounts, motorcycle, gear, costs, snapshots,
     return {
       ...progress,
       totalCents,
-      forecast: computeForecast({ missingCents: progress.missingCents, rate, monthlyGoalCents, now }),
+      forecast: computeForecast({ missingCents: progress.missingCents, rate, minimumPayCents, monthlyGoalCents, now }),
     };
   };
 

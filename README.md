@@ -28,8 +28,8 @@ Toda a lógica está em `src/lib/finance` (funções puras, com testes):
 - **Setup completo** = preço da mota + equipamento por comprar + custos da compra.
 - **Mínimo para começar a andar** = o mesmo, só com itens e custos essenciais.
 - **Falta** = meta − total juntado. Itens comprados saem da meta e ficam como "já gasto".
-- **Ritmo de poupança**: média mensal dos últimos 6 meses do histórico de saldos. Cada conta conta a partir do primeiro saldo registado, para que os saldos iniciais não pareçam poupança. São precisos pelo menos 30 dias de histórico; sem isso (ou com ritmo ≤ 0) usa-se a meta mensal das Definições.
-- **Data prevista** = hoje + falta ÷ ritmo.
+- **Média real**: média mensal dos últimos 6 meses do histórico de saldos. Cada conta conta a partir do primeiro saldo registado, para que os saldos iniciais não pareçam poupança. São precisos pelo menos 30 dias de histórico. O Início mostra também quanto seria com o dinheiro dos turnos por confirmar, só como informação.
+- **Data prevista** = hoje + falta ÷ ritmo, em que o ritmo é o maior entre a média real e o **ordenado mínimo** × % para a mota (definições do Trabalho; em salário fixo, o salário). Sem nenhum dos dois, usa-se a meta mensal das Definições.
 
 ### Modo Trabalho
 
@@ -58,6 +58,7 @@ Lógica em `src/lib/work` (funções puras, com testes). A regra central: **ganh
    5. `20260927000005_storage.sql`: bucket privado `photos`
    6. `20261008000001_work_mode.sql`: modo Trabalho (só acrescenta tabelas; o rollback está no topo do ficheiro)
    7. `20261111000001_complete_shift.sql`: "Turno feito" atómico (só acrescenta uma função)
+   8. `20261121000001_minimum_pay.sql`: ordenado mínimo por mês, para a data prevista (só acrescenta uma coluna)
 
    Em alternativa, com a CLI: `npx supabase init` (se ainda não existir `supabase/config.toml`), `npx supabase link --project-ref <ref>` e `npx supabase db push`.
 3. **Auth → URL Configuration**

@@ -1,7 +1,7 @@
 "use client";
 
-import { CheckIcon } from "@/components/icons";
 import { useState } from "react";
+import { CheckIcon } from "@/components/icons";
 import { Field, FormError, MoneyInput } from "@/components/ui/fields";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { useFormAction } from "@/components/ui/useFormAction";
@@ -17,7 +17,7 @@ export function SettingsForm({ monthlyGoalCents }: { monthlyGoalCents: Cents }) 
       <Field
         label="Meta de poupança mensal"
         htmlFor="monthly_goal"
-        hint="Usada para a data prevista enquanto não houver pelo menos um mês de histórico de saldos."
+        hint="Usada para a data prevista só quando ainda não há média real nem ordenado mínimo (definido no Trabalho)."
       >
         <MoneyInput id="monthly_goal" name="monthly_goal" defaultCents={monthlyGoalCents} />
       </Field>

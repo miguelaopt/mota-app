@@ -28,6 +28,7 @@ export default async function WorkSettingsPage() {
             hourlyRateCents: settings?.hourlyRateCents ?? null,
             monthlySalaryCents: settings?.monthlySalaryCents ?? null,
             monthlyHours: settings?.monthlyHours ?? null,
+            minimumMonthlyPayCents: settings?.minimumMonthlyPayCents ?? null,
             allocationPct: settings ? bpToPct(settings.allocationBp) : 100,
             target: settings?.target ?? "minimum",
             paidBreaks: settings?.paidBreaks ?? false,
