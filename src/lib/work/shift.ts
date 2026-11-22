@@ -1,4 +1,5 @@
 import type { Cents } from "@/lib/finance/money";
+import { holidayPaidMs, plannedHolidayPaidMs, type HolidayRules } from "./holidays";
 
 /**
  * Cálculos de um turno a partir de instantes (nunca de um contador que vai
@@ -35,6 +36,11 @@ export interface ShiftTerms {
   hourlyRateCents: Cents;
   /** 0–10000 (pontos base) dos ganhos estimados destinados à mota. */
   allocationBp: number;
+  /**
+   * Feriados e acréscimo. Não são copiados para o turno: valem as definições
+   * atuais, para o acréscimo poder ser acertado depois.
+   */
+  holiday?: HolidayRules;
 }
 
 export interface ShiftTimes {
@@ -107,14 +113,28 @@ export function plannedCents(earnedCents: Cents, allocationBp: number): Cents {
 }
 
 export interface ShiftEstimate extends ShiftTimes {
+  /** Parte do tempo pago que cai em feriado (já incluída em paidMs). */
+  holidayPaidMs: number;
   earnedCents: Cents;
   plannedCents: Cents;
 }
 
+/**
+ * Ganhos com o acréscimo de feriado: as horas em feriado valem
+ * (1 + acréscimo). Arredonda só no fim, ao cêntimo.
+ */
+export function earningsWithHolidayCents(paidMs: number, holidayMs: number, hourlyRateCents: Cents, premiumBp: number): Cents {
+  if (paidMs <= 0 || hourlyRateCents <= 0) return 0;
+  const weightedMs = paidMs + (Math.min(holidayMs, paidMs) * Math.max(0, premiumBp)) / FULL_BP;
+  return Math.round((weightedMs * hourlyRateCents) / HOUR_MS);
+}
+
 export function estimateShift(shift: ShiftTiming & ShiftTerms, now: number): ShiftEstimate {
   const times = computeShiftTimes(shift, now);
-  const earned = estimateEarningsCents(times.paidMs, shift.hourlyRateCents);
-  return { ...times, earnedCents: earned, plannedCents: plannedCents(earned, shift.allocationBp) };
+  const rules = shift.holiday;
+  const holidayMs = rules && rules.premiumBp > 0 ? holidayPaidMs(shift, now, rules) : 0;
+  const earned = earningsWithHolidayCents(times.paidMs, holidayMs, shift.hourlyRateCents, rules?.premiumBp ?? 0);
+  return { ...times, holidayPaidMs: holidayMs, earnedCents: earned, plannedCents: plannedCents(earned, shift.allocationBp) };
 }
 
 /**
@@ -132,10 +152,12 @@ export function estimateAtPlannedEnd(shift: ShiftTiming & ShiftTerms, now: numbe
 export function estimatePlannedShift(
   plan: { startsAt: number; endsAt: number; unpaidBreakMinutes: number },
   terms: ShiftTerms,
-): { paidMs: number; earnedCents: Cents; plannedCents: Cents } {
+): { paidMs: number; holidayPaidMs: number; earnedCents: Cents; plannedCents: Cents } {
   const paidMs = Math.max(0, plan.endsAt - plan.startsAt - plan.unpaidBreakMinutes * MINUTE_MS);
-  const earned = estimateEarningsCents(paidMs, terms.hourlyRateCents);
-  return { paidMs, earnedCents: earned, plannedCents: plannedCents(earned, terms.allocationBp) };
+  const rules = terms.holiday;
+  const holidayMs = rules && rules.premiumBp > 0 ? plannedHolidayPaidMs(plan, paidMs, rules) : 0;
+  const earned = earningsWithHolidayCents(paidMs, holidayMs, terms.hourlyRateCents, rules?.premiumBp ?? 0);
+  return { paidMs, holidayPaidMs: holidayMs, earnedCents: earned, plannedCents: plannedCents(earned, terms.allocationBp) };
 }
 
 /** Equivalente horário de um salário fixo: salário ÷ horas previstas. */

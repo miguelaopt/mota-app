@@ -41,7 +41,7 @@ function ConfiguredCard({ data }: { data: WorkClientData }) {
   const terms = data.settings;
 
   if (active) {
-    const e = estimateShift({ ...active, endedAt: null }, now);
+    const e = estimateShift({ ...active, holiday: data.settings.holiday, endedAt: null }, now);
     const onBreak = e.openBreak;
     return (
       <Card className="mt-3 p-4">
@@ -98,7 +98,7 @@ function ConfiguredCard({ data }: { data: WorkClientData }) {
 export function WorkProjectionLine({ data }: { data: WorkClientData }) {
   const clock = useWorkClock({ userId: data.userId, serverActive: data.activeShift, renderedAt: data.renderedAt });
   const now = useNow(clock.active != null, data.renderedAt, 5000);
-  const live = clock.active ? estimateShift({ ...clock.active, endedAt: null }, now).plannedCents : 0;
+  const live = clock.active ? estimateShift({ ...clock.active, holiday: data.settings.holiday, endedAt: null }, now).plannedCents : 0;
   if (live <= 0) return null;
   return <p className="mt-2 text-sm font-medium text-accent tabular-nums">+{formatEur(live)} planeados neste turno</p>;
 }

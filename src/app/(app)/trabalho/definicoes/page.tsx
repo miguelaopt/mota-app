@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { requireSession } from "@/lib/auth";
 import { getWorkSettings } from "@/lib/data/work";
+import { DEFAULT_HOLIDAY_RULES } from "@/lib/work/holidays";
 import { bpToPct } from "@/lib/work/shift";
 import { WorkSettingsForm } from "./WorkSettingsForm";
 
@@ -29,6 +30,9 @@ export default async function WorkSettingsPage() {
             monthlySalaryCents: settings?.monthlySalaryCents ?? null,
             monthlyHours: settings?.monthlyHours ?? null,
             minimumMonthlyPayCents: settings?.minimumMonthlyPayCents ?? null,
+            holidayPremiumPct: (settings?.holiday.premiumBp ?? DEFAULT_HOLIDAY_RULES.premiumBp) / 100,
+            municipalHoliday: settings?.holiday.municipal ?? null,
+            carnivalHoliday: settings?.holiday.carnival ?? false,
             allocationPct: settings ? bpToPct(settings.allocationBp) : 100,
             target: settings?.target ?? "minimum",
             paidBreaks: settings?.paidBreaks ?? false,

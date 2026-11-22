@@ -1,4 +1,5 @@
 import type { Cents } from "@/lib/finance/money";
+import type { HolidayRules } from "./holidays";
 import type { ClockShift } from "./clock";
 import type { GoalTarget, PayMode } from "./shift";
 
@@ -28,6 +29,8 @@ export interface WorkClientData {
     paidBreaks: boolean;
     haptics: boolean;
     animations: boolean;
+    /** Acréscimo nos feriados, feriado municipal e Carnaval. */
+    holiday: HolidayRules;
   };
   activeShift: ClockShift | null;
   /** Calendário: do mês anterior até três meses à frente. */

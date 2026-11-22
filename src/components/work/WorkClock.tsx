@@ -136,8 +136,8 @@ function ActiveShift({
   onSheet: (kind: SheetKind) => void;
   run: (op: Parameters<Clock["dispatch"]>[0]) => string | null;
 }) {
-  const e = estimateShift({ ...shift, endedAt: null }, now);
-  const atEnd = estimateAtPlannedEnd({ ...shift, endedAt: null }, now);
+  const e = estimateShift({ ...shift, holiday: data.settings.holiday, endedAt: null }, now);
+  const atEnd = estimateAtPlannedEnd({ ...shift, holiday: data.settings.holiday, endedAt: null }, now);
   const onBreak = e.openBreak;
   const model = data.motorcycle?.model ?? "mota";
   const plannedTotalMs = shift.plannedEndAt != null ? shift.plannedEndAt - shift.startedAt : null;
@@ -300,8 +300,8 @@ function ShiftGoalImpact({
 }
 
 function Motivation({ data, shift, now }: { data: WorkClientData; shift: ClockShift; now: number }) {
-  const e = estimateShift({ ...shift, endedAt: null }, now);
-  const atEnd = estimateAtPlannedEnd({ ...shift, endedAt: null }, now);
+  const e = estimateShift({ ...shift, holiday: data.settings.holiday, endedAt: null }, now);
+  const atEnd = estimateAtPlannedEnd({ ...shift, holiday: data.settings.holiday, endedAt: null }, now);
   const model = data.motorcycle?.model ?? "mota";
   const milestone = nextMilestone(data.goal.savedCents, data.goal.minimumCents, data.goal.fullCents);
   const [broken, setBroken] = useState(false);

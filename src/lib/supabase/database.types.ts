@@ -269,6 +269,9 @@ export type Database = {
           monthly_salary_cents: number | null;
           monthly_hours: number | null;
           minimum_monthly_pay_cents: number | null;
+          holiday_premium_bp: number;
+          municipal_holiday: string | null;
+          carnival_holiday: boolean;
           allocation_bp: number;
           target: Database["public"]["Enums"]["goal_target"];
           paid_breaks: boolean;
@@ -288,6 +291,9 @@ export type Database = {
           monthly_salary_cents?: number | null;
           monthly_hours?: number | null;
           minimum_monthly_pay_cents?: number | null;
+          holiday_premium_bp?: number;
+          municipal_holiday?: string | null;
+          carnival_holiday?: boolean;
           allocation_bp?: number;
           target?: Database["public"]["Enums"]["goal_target"];
           paid_breaks?: boolean;
@@ -307,6 +313,9 @@ export type Database = {
           monthly_salary_cents?: number | null;
           monthly_hours?: number | null;
           minimum_monthly_pay_cents?: number | null;
+          holiday_premium_bp?: number;
+          municipal_holiday?: string | null;
+          carnival_holiday?: boolean;
           allocation_bp?: number;
           target?: Database["public"]["Enums"]["goal_target"];
           paid_breaks?: boolean;

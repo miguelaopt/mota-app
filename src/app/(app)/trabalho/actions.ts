@@ -10,6 +10,7 @@ import { FormError, getEnum, getId, getMoney, getOptionalMoney, getPercent, getR
 import { check, runAction } from "@/lib/server-action";
 import type { Db } from "@/lib/supabase/server";
 import { clampToNow, parseWorkOp, type WorkOp } from "@/lib/work/clock";
+import { parseMunicipalHoliday } from "@/lib/work/holidays";
 import { HOUR_MS, MINUTE_MS, monthlyToHourlyCents, pctToBp, validateShiftTimes } from "@/lib/work/shift";
 
 // ---------------------------------------------------------------------------
@@ -224,6 +225,10 @@ export async function saveWorkSettingsAction(_prev: ActionResult, form: FormData
     if (hourlyRateCents > 100000) throw new FormError("O valor/hora é demasiado alto.");
 
     const referenceHours = getOptionalNumber(form, "reference_hours", { label: "Duração de referência", min: 0.25, max: 24 });
+    // Vazio = sem acréscimo (por exemplo, quando dão folga em vez de dinheiro).
+    const holidayPremiumPct = getOptionalNumber(form, "holiday_premium_pct", { label: "Acréscimo nos feriados", min: 0, max: 300 }) ?? 0;
+    const municipalHoliday = parseMunicipalHoliday(String(form.get("municipal_holiday") ?? ""));
+    if (municipalHoliday === undefined) throw new FormError("Escreve o feriado municipal como dia/mês, por exemplo 13/06.");
 
     const { error } = await supabase.from("work_settings").upsert({
       user_id: userId,
@@ -240,10 +245,14 @@ export async function saveWorkSettingsAction(_prev: ActionResult, form: FormData
       shifts_per_week: getOptionalNumber(form, "shifts_per_week", { label: "Turnos por semana", min: 0.5, max: 21 }),
       haptics: form.get("haptics") === "on",
       animations: form.get("animations") === "on",
+      holiday_premium_bp: Math.round(holidayPremiumPct * 100),
+      municipal_holiday: municipalHoliday,
+      carnival_holiday: form.get("carnival_holiday") === "on",
     });
     // Coluna nova ainda sem migration no Supabase (PostgREST: coluna desconhecida).
     if (error?.code === "PGRST204") {
-      throw new FormError("Falta correr a migration 20261121000001_minimum_pay.sql no Supabase (SQL Editor).");
+      const file = error.message.includes("minimum_monthly_pay") ? "20261121000001_minimum_pay.sql" : "20261122000001_holidays.sql";
+      throw new FormError(`Falta correr a migration ${file} no Supabase (SQL Editor).`);
     }
     if (error) throw new Error(error.message);
   });

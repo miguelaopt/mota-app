@@ -54,8 +54,9 @@ No painel do projeto: **SQL Editor** → **New query**. Para **cada ficheiro**, 
 | 6 | `supabase/migrations/20261008000001_work_mode.sql` | Modo Trabalho: turnos, pausas e poupança confirmada (só acrescenta tabelas) |
 | 7 | `supabase/migrations/20261111000001_complete_shift.sql` | "Turno feito" numa só ida à base de dados (só acrescenta uma função) |
 | 8 | `supabase/migrations/20261121000001_minimum_pay.sql` | Ordenado mínimo por mês, para a data prevista (só acrescenta uma coluna) |
+| 9 | `supabase/migrations/20261122000001_holidays.sql` | Feriados: acréscimo por hora, feriado municipal e Carnaval (só acrescenta colunas) |
 
-> **Já tinhas a app a funcionar?** Corre só os ficheiros que ainda não correste (por exemplo, só o 8). Não mexem nos dados que já existem.
+> **Já tinhas a app a funcionar?** Corre só os ficheiros que ainda não correste (por exemplo, só o 9). Não mexem nos dados que já existem.
 
 > Corre cada ficheiro **uma só vez**. Um erro como `type "account_kind" already exists` quer dizer que esse ficheiro já tinha sido corrido.
 
@@ -275,7 +276,7 @@ A lista **"Para a meta ficar certa"** no Início vai-se riscando à medida que p
 | Entras, mas não há contas nem equipamento | O login foi feito antes de correr a migration 4 | No SQL Editor: `select public.seed_user_defaults(id) from auth.users;` |
 | "Não foi possível guardar…" em tudo | Migrations incompletas, ou projeto Supabase pausado | Verificação do passo 2; no painel do Supabase vê se o projeto está pausado (ver abaixo) |
 | Erro ao carregar a foto | Bucket `photos` não foi criado (migration 5) | Corre a migration 5. Se as policies derem erro de permissões, vê abaixo |
-| "Falta correr a migration 20261121000001_minimum_pay.sql" ao guardar as definições do trabalho | A migration 8 não foi corrida | Corre esse ficheiro no SQL Editor e volta a guardar |
+| "Falta correr a migration …" ao guardar as definições do trabalho | A migration indicada (8 ou 9) não foi corrida | Corre esse ficheiro no SQL Editor e volta a guardar |
 | "Turno feito" fica em "a sincronizar…" e aparece "Não foi possível sincronizar" | A migration 7 não foi corrida | Corre `20261111000001_complete_shift.sql` no SQL Editor. O turno fica guardado no telemóvel e é enviado quando a função existir |
 | O iPhone mostra uma versão antiga depois de um deploy | O service worker ainda tem a versão anterior | Fecha a app (desliza para cima no seletor de apps) e volta a abrir |
 

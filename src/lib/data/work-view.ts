@@ -78,6 +78,7 @@ export function buildWorkClientData({
       paidBreaks: settings.paidBreaks,
       haptics: settings.haptics,
       animations: settings.animations,
+      holiday: settings.holiday,
     },
     activeShift: active ? toClockShift(active) : null,
     calendar: calendar.map((c) => {
