@@ -19,6 +19,7 @@ import { formatEur } from "@/lib/finance/money";
 import { haptic } from "@/lib/haptics";
 import { formatHm } from "@/lib/work/format";
 import { estimatePlannedShift } from "@/lib/work/shift";
+import { formatPremium, holidayName } from "@/lib/work/holidays";
 import { addMinutesToTime } from "@/lib/work/today";
 import type { CalendarEntry, WorkClientData } from "@/lib/work/view";
 import { deleteScheduledShiftAction, saveScheduledShiftAction } from "./actions";
@@ -142,12 +143,13 @@ export function WorkCalendar({ data }: { data: WorkClientData }) {
             const pending = entries.some((e) => !isDone(e));
             const past = key < today;
             const isToday = key === today;
+            const holiday = holidayName(key, data.settings.holiday);
             return (
               <button
                 key={key}
                 type="button"
                 onClick={() => setSelected(key)}
-                aria-label={`${formatDayHeading(key, new Date(data.renderedAt))}${entries.length ? (done ? ", turno feito" : ", turno marcado") : ""}`}
+                aria-label={`${formatDayHeading(key, new Date(data.renderedAt))}${holiday ? `, feriado (${holiday})` : ""}${entries.length ? (done ? ", turno feito" : ", turno marcado") : ""}`}
                 className={cn(
                   "display relative flex h-11 flex-col items-center justify-center gap-0.5 rounded-xl text-[1.0625rem] active:opacity-70",
                   done && "border border-accent/35 bg-accent/[0.16] text-accent",
@@ -161,6 +163,7 @@ export function WorkCalendar({ data }: { data: WorkClientData }) {
               >
                 {Number(key.slice(8))}
                 {pending && <span className="h-1 w-1 rounded-full bg-accent/80" aria-hidden />}
+                {holiday && <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-warning" aria-hidden />}
               </button>
             );
           })}
@@ -177,6 +180,10 @@ export function WorkCalendar({ data }: { data: WorkClientData }) {
           <span className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-[3px] border-[1.5px] border-accent" aria-hidden />
             hoje
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-warning" aria-hidden />
+            feriado
           </span>
         </div>
         {monthEntries.length === 0 && <p className="mt-2 px-1.5 text-sm text-muted">Toca num dia para marcar um turno.</p>}
@@ -231,9 +238,17 @@ function DaySheet({
   const [adding, setAdding] = useState(entries.length === 0);
 
   if (editing) return <ScheduleForm data={data} day={day} entry={editing} onDone={onClose} />;
+  const holiday = holidayName(day, data.settings.holiday);
+  const premium = data.settings.holiday.premiumBp;
 
   return (
     <div className="space-y-4">
+      {holiday && (
+        <p className="flex items-center gap-2 rounded-[14px] border border-warning/25 bg-warning-soft px-3.5 py-2.5 text-sm text-warning">
+          <span className="font-semibold">Feriado: {holiday}</span>
+          <span className="text-warning/80">· {premium > 0 ? `${formatPremium(premium)} por hora` : "sem acréscimo"}</span>
+        </p>
+      )}
       {entries.map((entry) => {
         const plan = estimatePlannedShift(entry, data.settings);
         const done = isDone(entry);

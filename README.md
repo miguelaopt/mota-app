@@ -39,6 +39,7 @@ Lógica em `src/lib/work` (funções puras, com testes). A regra central: **ganh
 - **Ganhos estimados** = round(tempo pago × valor/hora) e **planeado** = round(ganhos × % para a mota). Montantes em cêntimos, percentagens em pontos base, arredondados só no fim.
 - Ao picar entrada, o turno guarda uma cópia do valor/hora, da % e da meta: mudar as definições não altera turnos antigos.
 - **Terminar um turno nunca altera o saldo.** A poupança só conta quando é confirmada: em *Recebi o pagamento* (no Início, no Trabalho ou em `/trabalho/confirmar`) atualizas o saldo de uma conta (ou escolhes uma atualização já feita) e indicas que parte veio do trabalho. Essa atribuição só classifica o aumento e nunca pode ser maior do que ele, por isso o dinheiro não entra duas vezes (função `confirm_work_savings`).
+- **Feriados:** as horas pagas que caem num feriado valem mais a percentagem de acréscimo das definições do Trabalho (+50% por omissão; a dobrar = +100%). Os 13 feriados nacionais obrigatórios são calculados para qualquer ano (incluindo Sexta-feira Santa, Páscoa e Corpo de Deus); o feriado municipal e o Carnaval são opcionais (`src/lib/work/holidays.ts`). Ao contrário do valor/hora, estas regras não são copiadas para o turno: valem as atuais, para o acréscimo poder ser acertado depois.
 - **Horas em falta** = em falta ÷ (valor/hora × %). **Turnos equivalentes** = horas ÷ duração de referência (a definida, ou a média dos teus turnos).
 - A data prevista do Início (ritmo real ou meta mensal) mantém-se. O Trabalho mostra à parte um mês aproximado com os turnos por semana definidos, sem lhe somar a meta mensal.
 - **"Turno feito"** regista o turno do calendário numa só chamada (`complete_scheduled_shift`): idempotente, liga-se a um turno já picado à mesma hora em vez de o contar duas vezes, e volta a registar um dia apagado.
@@ -59,6 +60,7 @@ Lógica em `src/lib/work` (funções puras, com testes). A regra central: **ganh
    6. `20261008000001_work_mode.sql`: modo Trabalho (só acrescenta tabelas; o rollback está no topo do ficheiro)
    7. `20261111000001_complete_shift.sql`: "Turno feito" atómico (só acrescenta uma função)
    8. `20261121000001_minimum_pay.sql`: ordenado mínimo por mês, para a data prevista (só acrescenta uma coluna)
+   9. `20261122000001_holidays.sql`: feriados (acréscimo, feriado municipal e Carnaval; só acrescenta colunas)
 
    Em alternativa, com a CLI: `npx supabase init` (se ainda não existir `supabase/config.toml`), `npx supabase link --project-ref <ref>` e `npx supabase db push`.
 3. **Auth → URL Configuration**

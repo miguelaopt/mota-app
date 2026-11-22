@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import type { Cents } from "@/lib/finance/money";
 import type { Db } from "@/lib/supabase/server";
+import { DEFAULT_HOLIDAY_RULES, type HolidayRules } from "@/lib/work/holidays";
 import type { GoalTarget, PayMode, ShiftBreak } from "@/lib/work/shift";
 
 export interface WorkSettings {
@@ -12,6 +13,8 @@ export interface WorkSettings {
   monthlyHours: number | null;
   /** Ordenado mínimo por mês (opcional, só em "por hora"). */
   minimumMonthlyPayCents: Cents | null;
+  /** Acréscimo nos feriados, feriado municipal e Carnaval. */
+  holiday: HolidayRules;
   allocationBp: number;
   target: GoalTarget;
   paidBreaks: boolean;
@@ -37,6 +40,12 @@ export const getWorkSettings = cache(async (db: Db): Promise<WorkSettings | null
     monthlySalaryCents: data.monthly_salary_cents,
     monthlyHours: data.monthly_hours == null ? null : Number(data.monthly_hours),
     minimumMonthlyPayCents: data.minimum_monthly_pay_cents ?? null,
+    // Sem a migration dos feriados, valem os valores por omissão (+50%).
+    holiday: {
+      premiumBp: data.holiday_premium_bp ?? DEFAULT_HOLIDAY_RULES.premiumBp,
+      municipal: data.municipal_holiday ?? null,
+      carnival: data.carnival_holiday ?? false,
+    },
     allocationBp: data.allocation_bp,
     target: data.target,
     paidBreaks: data.paid_breaks,
@@ -67,6 +76,8 @@ export interface ShiftRecord {
   breaks: ShiftBreak[];
   /** Confirmação de poupança que reconciliou este turno. */
   attributionId: string | null;
+  /** Regras de feriado atuais (das definições do trabalho), para as estimativas. */
+  holiday: HolidayRules;
 }
 
 const ms = (value: string | null) => (value == null ? null : Date.parse(value));
@@ -107,7 +118,12 @@ type ShiftRow = {
 type BreakRow = { id: string; shift_id: string; started_at: string; ended_at: string | null; paid: boolean };
 type LinkRow = { shift_id: string; attribution_id: string };
 
-function assemble(rows: ShiftRow[], breaks: BreakRow[], links: LinkRow[]): ShiftRecord[] {
+/** Regras de feriado para as estimativas dos turnos (lidas uma vez por pedido). */
+async function holidayRules(db: Db): Promise<HolidayRules> {
+  return (await getWorkSettings(db))?.holiday ?? DEFAULT_HOLIDAY_RULES;
+}
+
+function assemble(rows: ShiftRow[], breaks: BreakRow[], links: LinkRow[], holiday: HolidayRules): ShiftRecord[] {
   const breaksByShift = new Map<string, ShiftBreak[]>();
   for (const b of breaks) {
     const list = breaksByShift.get(b.shift_id) ?? [];
@@ -134,6 +150,7 @@ function assemble(rows: ShiftRow[], breaks: BreakRow[], links: LinkRow[]): Shift
     originalEndedAt: ms(row.original_ended_at),
     breaks: breaksByShift.get(row.id) ?? [],
     attributionId: attributionByShift.get(row.id) ?? null,
+    holiday,
   }));
 }
 
@@ -144,6 +161,7 @@ async function hydrate(db: Db, rows: ShiftRow[]): Promise<ShiftRecord[]> {
   // Em lotes, para o URL do pedido não ficar enorme.
   const breaks: BreakRow[] = [];
   const links: LinkRow[] = [];
+  const rules = await holidayRules(db);
   for (let i = 0; i < ids.length; i += 200) {
     const chunk = ids.slice(i, i + 200);
     const [b, l] = await Promise.all([
@@ -155,7 +173,7 @@ async function hydrate(db: Db, rows: ShiftRow[]): Promise<ShiftRecord[]> {
     breaks.push(...b.data);
     links.push(...l.data);
   }
-  return assemble(rows, breaks, links);
+  return assemble(rows, breaks, links, rules);
 }
 
 /**
@@ -163,12 +181,13 @@ async function hydrate(db: Db, rows: ShiftRow[]): Promise<ShiftRecord[]> {
  * às confirmações são lidos ao mesmo tempo (uma só ida à base de dados).
  */
 export async function getShifts(db: Db): Promise<ShiftRecord[]> {
-  const [rows, breaks, links] = await Promise.all([
+  const [rows, breaks, links, rules] = await Promise.all([
     allPages<ShiftRow>((from, to) => db.from("shifts").select(SHIFT_COLUMNS).order("started_at", { ascending: false }).range(from, to)),
     allPages<BreakRow>((from, to) => db.from("shift_breaks").select("id, shift_id, started_at, ended_at, paid").order("id").range(from, to)),
     allPages<LinkRow>((from, to) => db.from("savings_attribution_shifts").select("shift_id, attribution_id").order("shift_id").range(from, to)),
+    holidayRules(db),
   ]);
-  return assemble(rows, breaks, links);
+  return assemble(rows, breaks, links, rules);
 }
 
 /** Só os turnos indicados (ex.: os de uma confirmação), sem ler o histórico todo. */

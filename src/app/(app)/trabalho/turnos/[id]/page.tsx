@@ -11,6 +11,7 @@ import { getAttributions, getShift, getShiftsByIds } from "@/lib/data/work";
 import { formatShortDate, formatTime, toLocalInput } from "@/lib/dates";
 import { formatEur } from "@/lib/finance/money";
 import { formatBp, formatHm } from "@/lib/work/format";
+import { formatPremium, holidayAt } from "@/lib/work/holidays";
 import { estimateShift, isUnusualShift } from "@/lib/work/shift";
 import { TARGET_LABEL } from "@/lib/work/view";
 import { ShiftEditor } from "./ShiftEditor";
@@ -87,6 +88,13 @@ export default async function ShiftPage({ params }: { params: Promise<{ id: stri
             hint={e.breakMs > 0 ? (e.unpaidBreakMs > 0 ? `${formatHm(e.unpaidBreakMs)} não remuneradas` : "remuneradas") : undefined}
           />
           <StatRow label="Duração paga" value={formatHm(e.paidMs)} strong />
+          {e.holidayPaidMs > 0 && (
+            <StatRow
+              label="Em feriado"
+              hint={`${holidayAt(shift.startedAt, shift.holiday) ?? holidayAt(shift.endedAt - 1, shift.holiday) ?? "Feriado"} · ${formatPremium(shift.holiday.premiumBp)} por hora`}
+              value={formatHm(e.holidayPaidMs)}
+            />
+          )}
           <StatRow label="Valor/hora deste turno" hint="copiado ao picar a entrada" value={`${formatEur(shift.hourlyRateCents)}/h`} />
           <StatRow label="Objetivo" value={<span className="first-letter:uppercase">{TARGET_LABEL[shift.target]}</span>} />
           {shift.plannedEndAt && <StatRow label="Saída prevista" value={formatTime(shift.plannedEndAt)} />}

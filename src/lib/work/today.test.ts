@@ -15,6 +15,8 @@ const settings = {
   paidBreaks: false,
   haptics: true,
   animations: true,
+  // Sem acréscimo: estes testes são sobre o dia de hoje, não sobre feriados.
+  holiday: { premiumBp: 0, municipal: null, carnival: false },
 };
 
 const entry = (id: string, startIso: string, overrides: Partial<CalendarEntry> = {}): CalendarEntry => ({

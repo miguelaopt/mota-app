@@ -16,6 +16,7 @@ import { formatEur } from "@/lib/finance/money";
 import { haptic } from "@/lib/haptics";
 import type { CompletedClockShift } from "@/lib/work/clock";
 import { formatCountdown, formatHm } from "@/lib/work/format";
+import { formatPremium, holidayAt } from "@/lib/work/holidays";
 import { estimatePlannedShift, estimateShift, isUnusualShift } from "@/lib/work/shift";
 import { todayView } from "@/lib/work/today";
 import { TARGET_LABEL, targetCents, type CalendarEntry, type WorkClientData } from "@/lib/work/view";
@@ -64,6 +65,7 @@ export function WorkToday({ data, onHome = false }: { data: WorkClientData; onHo
               <>
                 <p className="eyebrow text-accent">
                   {view.main.endsAt > now ? "Turno a decorrer" : "Por marcar"} · {dayLabel(view.main.startsAt).toLowerCase()}
+                  <HolidayTag at={view.main.startsAt} data={data} />
                 </p>
                 <p className="display mt-1 text-2xl">
                   {formatTime(view.main.startsAt)} – {formatTime(view.main.endsAt)}
@@ -81,7 +83,10 @@ export function WorkToday({ data, onHome = false }: { data: WorkClientData; onHo
               </>
             ) : view.laterToday ? (
               <>
-                <p className="eyebrow">{data.settings.jobName} · hoje</p>
+                <p className="eyebrow">
+                  {data.settings.jobName} · hoje
+                  <HolidayTag at={view.laterToday.startsAt} data={data} />
+                </p>
                 <p className="display mt-1 text-2xl">
                   {formatTime(view.laterToday.startsAt)} – {formatTime(view.laterToday.endsAt)}
                 </p>
@@ -157,6 +162,18 @@ export function WorkToday({ data, onHome = false }: { data: WorkClientData; onHo
   );
 }
 
+/** " · feriado +50%" no cabeçalho do turno, quando o dia é feriado. */
+function HolidayTag({ at, data }: { at: number; data: WorkClientData }) {
+  const rules = data.settings.holiday;
+  if (!holidayAt(at, rules)) return null;
+  return (
+    <span className="text-warning">
+      {" "}
+      · feriado{rules.premiumBp > 0 ? ` ${formatPremium(rules.premiumBp)}` : ""}
+    </span>
+  );
+}
+
 const plan = (data: WorkClientData, entry: CalendarEntry) => estimatePlannedShift(entry, data.settings);
 
 export function SyncStatus({ clock }: { clock: Clock }) {
@@ -182,7 +199,7 @@ export function SyncStatus({ clock }: { clock: Clock }) {
 }
 
 function Reward({ data, shift, onDone }: { data: WorkClientData; shift: CompletedClockShift; onDone: () => void }) {
-  const e = estimateShift(shift, shift.endedAt);
+  const e = estimateShift({ ...shift, holiday: data.settings.holiday }, shift.endedAt);
   const model = data.motorcycle?.model ?? "mota";
   const goalCents = targetCents(data.goal, shift.target);
   const missingAfter = Math.max(0, goalCents - data.goal.savedCents - e.plannedCents);
@@ -213,6 +230,13 @@ function Reward({ data, shift, onDone }: { data: WorkClientData; shift: Complete
           hint={e.unpaidBreakMs > 0 ? `${formatHm(e.unpaidBreakMs)} não remuneradas` : undefined}
         />
         <StatRow label="Duração paga" value={formatHm(e.paidMs)} />
+        {e.holidayPaidMs > 0 && (
+          <StatRow
+            label="Em feriado"
+            hint={`${formatPremium(data.settings.holiday.premiumBp)} por hora, já incluído`}
+            value={formatHm(e.holidayPaidMs)}
+          />
+        )}
         <StatRow label="Já guardado (real)" value={formatEur(data.goal.savedCents)} />
         <StatRow
           label="Projeção após guardar"

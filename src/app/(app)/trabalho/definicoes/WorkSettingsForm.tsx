@@ -7,6 +7,7 @@ import { Field, FormError, MoneyInput, PercentInput, Segmented, TextInput } from
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { useFormAction } from "@/components/ui/useFormAction";
 import { centsToInput, formatEur, parseEur } from "@/lib/finance/money";
+import { formatMunicipalHoliday } from "@/lib/work/holidays";
 import { monthlyToHourlyCents, type GoalTarget, type PayMode } from "@/lib/work/shift";
 import { saveWorkSettingsAction } from "../actions";
 
@@ -17,6 +18,9 @@ export interface WorkSettingsValues {
   monthlySalaryCents: number | null;
   monthlyHours: number | null;
   minimumMonthlyPayCents: number | null;
+  holidayPremiumPct: number;
+  municipalHoliday: string | null;
+  carnivalHoliday: boolean;
   allocationPct: number;
   target: GoalTarget;
   paidBreaks: boolean;
@@ -152,6 +156,31 @@ export function WorkSettingsForm({ values, isNew }: { values: WorkSettingsValues
       <Field label="Meta de referência">
         <Segmented name="target" options={TARGET_OPTIONS} defaultValue={values.target} />
       </Field>
+
+      <fieldset className="space-y-4">
+        <legend className="eyebrow mb-3 px-1 text-faint">Feriados</legend>
+        <Field
+          label="Acréscimo por hora num feriado"
+          htmlFor="holiday_premium_pct"
+          hint="+50% = cada hora vale 1,5×. A dobrar = 100. Põe 0 se te dão folga em vez de dinheiro. Os feriados nacionais já estão incluídos."
+        >
+          <PercentInput id="holiday_premium_pct" name="holiday_premium_pct" defaultPct={values.holidayPremiumPct} />
+        </Field>
+        <Field label="Feriado municipal (opcional)" htmlFor="municipal_holiday" hint="Dia/mês do feriado do concelho onde trabalhas.">
+          <TextInput
+            id="municipal_holiday"
+            name="municipal_holiday"
+            inputMode="numeric"
+            defaultValue={formatMunicipalHoliday(values.municipalHoliday)}
+            placeholder="Ex.: 13/06 (Lisboa)"
+            maxLength={5}
+          />
+        </Field>
+        <label className="flex min-h-12 items-center justify-between gap-3 rounded-[14px] border border-glass-border bg-card-2 px-3.5">
+          <span>O Carnaval é feriado no teu trabalho</span>
+          <input type="checkbox" name="carnival_holiday" defaultChecked={values.carnivalHoliday} className="h-5 w-5 accent-[var(--accent)]" />
+        </label>
+      </fieldset>
 
       <Field label="As tuas pausas costumam ser">
         <Segmented name="paid_breaks" options={BREAK_OPTIONS} defaultValue={values.paidBreaks ? "paid" : "unpaid"} />
