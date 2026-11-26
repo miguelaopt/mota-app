@@ -106,6 +106,7 @@ export function buildWorkClientData({
       fullCents: dashboard.full.totalCents,
     },
     pendingPlannedCents: stats.pendingPlannedCents,
+    pendingShiftCount: stats.pendingShiftIds.length,
     completedForGoal: completed.filter((s) => motorcycle == null || s.motorcycleId === motorcycle.id).length,
     referenceMinutes:
       referenceDuration(

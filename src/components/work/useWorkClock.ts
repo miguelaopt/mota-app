@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { workOpAction } from "@/app/(app)/trabalho/actions";
-import type { ClockShift, ClockState, WorkOp } from "@/lib/work/clock";
-import { createClockStore, localDoneIds, STORAGE_KEY } from "@/lib/work/clock-store";
+import type { ClockShift, ClockState, CompletedClockShift, WorkOp } from "@/lib/work/clock";
+import { createClockStore, localCompletedShifts, localDoneIds, STORAGE_KEY } from "@/lib/work/clock-store";
 
 let resync: (() => void) | null = null;
 
@@ -23,6 +23,8 @@ export interface WorkClock extends ClockState {
   pendingCount: number;
   /** Turnos do calendário já marcados como feitos neste telemóvel (podem ainda não estar no servidor). */
   localDoneIds: string[];
+  /** Turnos terminados neste telemóvel que a página ainda não inclui. */
+  localCompleted: CompletedClockShift[];
   error: string | null;
   dispatch: (op: WorkOp) => string | null;
   dismissCompleted: () => void;
@@ -85,6 +87,7 @@ export function useWorkClock({
     dismissedCompletedId: local?.dismissedCompletedId ?? null,
     pendingCount,
     localDoneIds: local ? localDoneIds(local, renderedAt) : [],
+    localCompleted: local ? localCompletedShifts(local, renderedAt) : [],
     error: local?.error ?? null,
     dispatch: store.dispatch,
     dismissCompleted: store.dismissCompleted,

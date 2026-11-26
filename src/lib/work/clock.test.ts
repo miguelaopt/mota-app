@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyWorkOp, parseWorkOp, type ClockShift, type WorkOp } from "./clock";
-import { createClockStore, localDoneIds, type SendResult, type StorageLike } from "./clock-store";
+import { createClockStore, localCompletedShifts, localDoneIds, type SendResult, type StorageLike } from "./clock-store";
 
 const SHIFT_ID = "aaaaaaaa-0000-4000-8000-000000000001";
 const BREAK_ID = "bbbbbbbb-0000-4000-8000-000000000001";
@@ -227,3 +227,28 @@ describe("turno do calendário apagado depois de marcado (bug do dia 10)", () =>
     expect(localDoneIds(store.getState()!, T0 + 999_999_999)).toEqual([SHIFT_ID]);
   });
 });
+
+describe("turnos terminados ainda fora da página (para os contadores descerem logo)", () => {
+  const done = { ...shift, endedAt: T0 + 5 * 3600_000 };
+
+  it("\"Turno feito\" na fila conta logo", () => {
+    expect(localCompletedShifts({ ops: [{ type: "complete", shift: done }], lastCompleted: done, ackAt: 0 }, T0)).toEqual([done]);
+  });
+
+  it("\"Picar saída\" na fila conta logo, mesmo com uma página recente", () => {
+    const state = { ops: [{ type: "clock_out" as const, shiftId: SHIFT_ID, at: done.endedAt }], lastCompleted: done, ackAt: T0 };
+    expect(localCompletedShifts(state, T0 + 1)).toEqual([done]);
+  });
+
+  it("já confirmado pelo servidor: só conta em páginas anteriores à confirmação", () => {
+    const state = { ops: [], lastCompleted: done, ackAt: T0 + 100 };
+    expect(localCompletedShifts(state, T0 + 99)).toEqual([done]);
+    // A página nova já traz o turno nos números do servidor: não conta duas vezes.
+    expect(localCompletedShifts(state, T0 + 100)).toEqual([]);
+  });
+
+  it("sem turnos terminados, nada", () => {
+    expect(localCompletedShifts({ ops: [], lastCompleted: null, ackAt: 0 }, T0)).toEqual([]);
+  });
+});
+

@@ -228,3 +228,21 @@ export function localDoneIds(state: Pick<ClockStoreState, "ops" | "lastCompleted
   const lastIsNewer = state.lastCompleted != null && renderedAt < state.ackAt && !queued.includes(state.lastCompleted.id);
   return lastIsNewer ? [...queued, state.lastCompleted!.id] : queued;
 }
+
+/**
+ * Turnos terminados neste telemóvel que a página mostrada ainda não inclui:
+ * "Turno feito" na fila e o último turno terminado (também com "Picar saída"),
+ * enquanto a página for anterior à confirmação do servidor. Servem para os
+ * contadores descerem logo, sem esperar pela rede.
+ */
+export function localCompletedShifts(
+  state: Pick<ClockStoreState, "ops" | "lastCompleted" | "ackAt">,
+  renderedAt: number,
+): CompletedClockShift[] {
+  const queued = state.ops.flatMap((op) => (op.type === "complete" ? [op.shift] : []));
+  const last = state.lastCompleted;
+  if (!last || queued.some((s) => s.id === last.id)) return queued;
+  const outQueued = state.ops.some((op) => op.type === "clock_out" && op.shiftId === last.id);
+  return outQueued || renderedAt < state.ackAt ? [...queued, last] : queued;
+}
+

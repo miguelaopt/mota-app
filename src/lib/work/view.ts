@@ -49,6 +49,8 @@ export interface WorkClientData {
   };
   /** Planeado em turnos concluídos e ainda não confirmado. */
   pendingPlannedCents: Cents;
+  /** Turnos terminados ainda por confirmar. */
+  pendingShiftCount: number;
   /** Turnos concluídos associados à mota atual. */
   completedForGoal: number;
   referenceMinutes: number | null;

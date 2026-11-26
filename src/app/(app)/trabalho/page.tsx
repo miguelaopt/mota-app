@@ -8,6 +8,7 @@ import { DayTile } from "@/components/ui/DayTile";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { undoKey } from "@/components/undo/keys";
 import { Removable } from "@/components/undo/UndoProvider";
+import { PendingHours } from "@/components/work/PendingHours";
 import { ReceivePaymentBanner } from "@/components/work/ReceivePaymentBanner";
 import { WorkClock } from "@/components/work/WorkClock";
 import { WorkToday } from "@/components/work/WorkToday";
@@ -151,6 +152,16 @@ export default async function WorkPage() {
               ) : (
                 <p className="text-sm text-muted">Define uma duração de referência para veres os turnos equivalentes.</p>
               )}
+              <PendingHours
+                data={data}
+                targets={[
+                  { target: main.target, missingCents: main.missingCents },
+                  ...(other.missingCents > 0 ? [{ target: other.target, missingCents: other.missingCents }] : []),
+                ]}
+                hourlyRateCents={settings.hourlyRateCents}
+                allocationBp={settings.allocationBp}
+                referenceMinutes={reference?.minutes ?? null}
+              />
               <p className="text-sm text-muted tabular-nums">
                 Calculado com o saldo real ({formatEur(dashboard.savedCents)}) e {formatEur(settings.hourlyRateCents)}/h. Não inclui outras
                 entradas nem valorização dos investimentos.
